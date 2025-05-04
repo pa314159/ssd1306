@@ -1,10 +1,21 @@
 
-ALL = bdf2fnt
+TOOLS = bdf2fnt
+
+SOURCE = .
+OUTPUT = .
 
 CFLAGS = -g -Wall
 
-all:: $(ALL)
+VPATH = $(SOURCE):$(OUTPUT)
+
+all:: $(OUTPUT) $(TOOLS)
 
 clean::
-	rm -f $(ALL)
+	rm -f $(TOOLS)
+
+$(OUTPUT):
+	mkdir -p $@
+
+%: %.c
+	$(CC) $(CFLAGS) -o $(OUTPUT)/$* $<
 

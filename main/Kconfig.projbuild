@@ -1,0 +1,198 @@
+menu "SSD1306 Configuration"
+    orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
+
+	config GPIO_RANGE_MAX
+		int
+		default 33 if IDF_TARGET_ESP32
+		default 46 if IDF_TARGET_ESP32S2
+		default 48 if IDF_TARGET_ESP32S3
+		default 18 if IDF_TARGET_ESP32C2
+		default 19 if IDF_TARGET_ESP32C3
+		default 30 if IDF_TARGET_ESP32C6
+		default 27 if IDF_TARGET_ESP32H2
+
+    choice SSD1306_LOGGING_LEVEL
+        bool "Logging level"
+        default SSD1306_LOGGING_LEVEL_INFO
+
+        config SSD1306_LOGGING_LEVEL_NONE
+            bool "No output"
+        config SSD1306_LOGGING_LEVEL_ERROR
+            bool "Error"
+        config SSD1306_LOGGING_LEVEL_WARN
+            bool "Warning"
+        config SSD1306_LOGGING_LEVEL_INFO
+            bool "Info"
+        config SSD1306_LOGGING_LEVEL_DEBUG
+            bool "Debug"
+        config SSD1306_LOGGING_LEVEL_VERBOSE
+            bool "Verbose"
+    endchoice
+
+    config SSD1306_LOGGING_LEVEL
+        int
+        default 0 if SSD1306_LOGGING_LEVEL_NONE
+        default 1 if SSD1306_LOGGING_LEVEL_ERROR
+        default 2 if SSD1306_LOGGING_LEVEL_WARN
+        default 3 if SSD1306_LOGGING_LEVEL_INFO
+        default 4 if SSD1306_LOGGING_LEVEL_DEBUG
+        default 5 if SSD1306_LOGGING_LEVEL_VERBOSE
+
+    choice SSD1306_SIZE
+        prompt "Panel Type"
+        default SSD1306_128x64
+        help
+            Select Panel Type.
+        config SSD1306_128x32
+            bool "128x32 Panel"
+            help
+                Panel is 128x32.
+        config SSD1306_128x64
+            bool "128x64 Panel"
+            help
+                Panel is 128x64.
+    endchoice
+
+    config SSD1306_WIDTH
+        int
+        default 128
+
+    config SSD1306_HEIGHT
+        int
+        default 32 if SSD1306_128x32
+        default 64 if SSD1306_128x64
+
+    config SSD1306_FLIP
+        bool "Flip upside down"
+        default false
+        help
+            Flip upside down.
+                
+    config SSD1306_FONT
+        string "Embedded font"
+        default "ib8x8u"
+        help
+            Embedded font name.
+
+    config SSD1306_SPLASH
+        bool "Splash screen"
+        default true
+        help
+            Show a splash screen at startup.
+        
+    choice SSD1306_INTERFACE
+        prompt "Interface"
+        default SSD1306_I2C
+        help
+            Select Interface.
+        config SSD1306_I2C
+            bool "I2C Interface"
+            help
+                I2C Interface.
+        config SSD1306_SPI
+            bool "SPI Interface"
+            help
+                SPI Interface.
+    endchoice
+
+    config SSD1306_I2C_RST_PIN
+        depends on SSD1306_I2C
+        int "RESET GPIO number"
+        range -1 GPIO_RANGE_MAX
+        default -1
+        help
+            GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
+
+    config SSD1306_I2C_SCL_PIN
+        depends on SSD1306_I2C
+        int "SCL GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 22
+        help
+            GPIO number (IOxx) to I2C SCL.
+            Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used to I2C.
+            GPIOs 35-39 are input-only so cannot be used as outputs.
+
+    config SSD1306_I2C_SDA_PIN
+        depends on SSD1306_I2C
+        int "SDA GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 21
+        help
+            GPIO number (IOxx) to I2C SDA.
+
+    config SSD1306_I2C_PORT
+        depends on SSD1306_I2C
+        int "I2C port that controls this bus"
+        range 0 1
+        default 0
+        help
+            Select I2C port that controls this bus.
+
+    config SSD1306_I2C_FREQ
+        depends on SSD1306_I2C
+        int "I2C frequency (kHz)"
+        default 400
+        help
+            Select I2C SCL line frequency in kHz.
+            Defaults to 400 kHz, a known 'safe' value for most
+            microcontrollers, and meets the SSD1306 datasheet spec.
+            Some systems can operate I2C faster (800 kHz for ESP32, 1 MHz
+            for many other 32-bit MCUs).
+
+    config SSD1306_SPI_RST_PIN
+        depends on SSD1306_SPI
+        int "RESET GPIO number"
+        range -1 GPIO_RANGE_MAX
+        default 5
+        help
+            GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
+        
+    config SSD1306_SPI_MOSI_PIN
+        depends on SSD1306_SPI
+        int "MOSI GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 18
+        help
+            GPIO number (IOxx) to SPI MOSI.
+
+    config SSD1306_SPI_SCLK_PIN
+        depends on SSD1306_SPI
+        int "SCLK GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 19
+        help
+            GPIO number (IOxx) to SPI SCLK.
+
+    config SSD1306_SPI_CS_PIN
+        depends on SSD1306_SPI
+        int "CS GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 16
+        help
+            GPIO number (IOxx) to SPI CS.
+
+    config SSD1306_SPI_DC_PIN
+        depends on SSD1306_SPI
+        int "DC GPIO number"
+        range 0 GPIO_RANGE_MAX
+        default 17
+        help
+            GPIO number (IOxx) to SPI DC.
+
+    config SSD1306_SPI_HOST
+        depends on SSD1306_SPI
+        int "SPI peripheral that controls this bus"
+        range 0 1
+        default 1
+        help
+            Select SPI peripheral that controls this bus.
+
+    config SSD1306_SPI_FREQ
+        depends on SSD1306_SPI
+        int "SPI frequency (MHz)"
+        default 1
+        help
+            Select SPI line frequency in MHz.
+
+endmenu

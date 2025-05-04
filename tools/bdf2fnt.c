@@ -302,7 +302,7 @@ static bdf_info_t* parse_bdf_info()
 	if( (info->input = fopen(options.input, "r")) == NULL ) {
 		fail(info, "cannot open input file: %s", strerror(errno));
 	}
-	if( (info->output = fopen(options.output, "r")) == NULL ) {
+	if( (info->output = fopen(options.output, "w")) == NULL ) {
 		fail(info, "cannot open output file: %s", strerror(errno));
 	}
 
@@ -353,7 +353,7 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 		switch( info->state ) {
 			case state_idle:
 				if( is_token(&line, "STARTCHAR") ) {
-					glyph = calloc(1, sizeof(bdf_glyph_t) + info->height);
+					glyph = calloc(1, sizeof(bdf_glyph_t) + info->height * sizeof(glyph->bitmap[0]));
 
 					strncpy(glyph->name, line, 15);
 
@@ -410,12 +410,12 @@ void write_glyph(bdf_info_t* info, bdf_glyph_t* glyph)
 	unsigned bytes;
 
 	for( bytes = 0; bytes < glyph->height; bytes++ ) {
-		fwrite(glyph->bitmap + bytes, glyph->width/2, 1, info->output);
+		fwrite(glyph->bitmap + bytes, glyph->width/8, 1, info->output);
 	}
 	for( ; bytes < info->height; bytes++ ) {
 		static uint16_t ZERO = 0;
 
-		fwrite(&ZERO, glyph->width/2, 1, info->output);
+		fwrite(&ZERO, glyph->width/8, 1, info->output);
 	}
 }
 
