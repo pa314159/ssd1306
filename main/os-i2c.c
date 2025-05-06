@@ -42,6 +42,7 @@ ssd1306_init_t ssd1306_create_init()
 
 struct ssd1306_i2c_s {
 	struct ssd1306_init_s;
+
 	i2c_master_bus_handle_t bus_handle;
 	i2c_master_dev_handle_t dev_handle;
 };
@@ -59,7 +60,7 @@ struct ssd1306_i2c_s {
 
 ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 {
-	esp_log_level_set("i2c.master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
+	// esp_log_level_set("i2c.master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
 
 	LOG_I("SCL PIN: %d", init->connection.scl);
 	LOG_I("SDA PIN: %d", init->connection.sda);
@@ -75,14 +76,14 @@ ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 		.sda_io_num = init->connection.sda,
 		.flags.enable_internal_pullup = true,
 	};
-	// dump("bus_cfg", &bus_cfg, sizeof(bus_cfg));
+	ssd1306_dump(&bus_cfg, sizeof(bus_cfg), "I2C bus config");
 
 	const i2c_device_config_t dev_cfg = {
 		.dev_addr_length = I2C_ADDR_BIT_LEN_7,
 		.device_address = SSD1306_I2C_ADDRESS,
 		.scl_speed_hz = 1000 * init->connection.freq,
 	};
-	// dump("dev_cfg", &dev_cfg, sizeof(dev_cfg));
+	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "I2C dev config");
 
 	ssd1306_i2c_t i2c = calloc(1, sizeof(struct ssd1306_i2c_s));
 

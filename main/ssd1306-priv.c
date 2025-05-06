@@ -5,7 +5,49 @@
 
 #include <esp_timer.h>
 
-// static void ssd1306_send(ssd1306_t device);
+static void ssd1306_send(ssd1306_t device, const ssd1306_bounds_t* bounds);
+
+void ssd1306_task(ssd1306_t device)
+{
+	LOG_I("Starting task %s", pcTaskGetName(xTaskGetCurrentTaskHandle()));
+
+	device->active = true;
+
+	while( device->active ) {
+		LOG_V("Waiting for event");
+
+#if CONFIG_SSD1306_OPTIMIZE
+		ssd1306_bounds_t bounds;
+
+		if( xQueueReceive(device->queue, &bounds, portMAX_DELAY) == pdFALSE ) {
+			continue;
+		}
+
+		if( xSemaphoreTake(device->mutex, portMAX_DELAY) ) {
+			ssd1306_send(device, &bounds);
+
+			xSemaphoreGive(device->mutex);
+		}
+#else
+		if( ulTaskNotifyTake(pdTRUE, portMAX_DELAY) == pdFALSE ) {
+			continue;
+		}
+
+		LOG_V("Got event");
+
+		if( xSemaphoreTake(device->mutex, portMAX_DELAY) ) {
+			const ssd1306_bounds_t bounds = {
+				width: device->width,
+				height: device->height,
+			};
+
+			ssd1306_send(device, &bounds);
+
+			xSemaphoreGive(device->mutex);
+		}
+#endif
+	}
+}
 
 void ssd1306_send_data(ssd1306_t device, const uint8_t* data, size_t size)
 {
@@ -21,40 +63,26 @@ void ssd1306_send_data(ssd1306_t device, const uint8_t* data, size_t size)
 	}
 }
 
-void ssd1306_task(ssd1306_t device)
+void ssd1306_send(ssd1306_t device, const ssd1306_bounds_t* bounds)
 {
-	LOG_I("Starting ssd1306 task");
+	int x0 = bounds->x;
+	int y0 = bounds->y;
+	int x1 = bounds->x + bounds->width;
+	int y1 = bounds->y + bounds->height;
 
-	device->active = true;
-
-	while( device->active ) {
-		LOG_D("Waiting for event");
-
-		if( ulTaskNotifyTake(pdTRUE, portMAX_DELAY) ) {
-			LOG_D("Got event");
-
-			if( xSemaphoreTake(device->mutex, portMAX_DELAY) ) {
-				ssd1306_send(device);
-
-				xSemaphoreGive(device->mutex);
-			}
-		}
-	}
-}
-
-void ssd1306_send(ssd1306_t device)
-{
-	uint64_t start = esp_timer_get_time();
-	
 	const uint8_t data[] = {
 		OLED_CTL_BYTE_CMD_STREAM,
-		OLED_CMD_SET_MEMORY_ADDR_MODE | OLED_CMD_SET_HORI_ADDR_MODE,
-		OLED_CMD_SET_COLUMN_RANGE, 0, device->width - 1,
-		OLED_CMD_SET_PAGE_RANGE, 0, device->pages - 1,
+		OLED_CMD_SET_MEMORY_ADDR_MODE, OLED_CMD_SET_HORI_ADDR_MODE,
+		OLED_CMD_SET_COLUMN_RANGE, x0, x1 - 1,
+		OLED_CMD_SET_PAGE_RANGE, y0 / 8, y1 / 8 - 1,
 	};
 
-	ssd1306_send_data(device, data, _countof(data));
-	ssd1306_send_data(device, raster_page_head(device, 0), device->width * device->pages);
+	ssd1306_dump(data, _countof(data), "");
 
-	LOG_I("ended after %uμs", esp_timer_get_time()-start);
+	uint64_t start = esp_timer_get_time();
+
+	ssd1306_send_data(device, data, _countof(data));
+	ssd1306_send_data(device, raster_head(device), device->width * device->pages + 1);
+
+	LOG_V("ended after %u \u03BCs", esp_timer_get_time()-start);
 }

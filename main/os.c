@@ -12,7 +12,7 @@ void ssd1306_log_level(unsigned level)
 	esp_log_level_set(LOG_DOMAIN, (esp_log_level_t)level);
 }
 
-void ssd1306_log(unsigned level, const char* function, const char* format, ...)
+void ssd1306_log(unsigned level, const char* function, int line, const char* format, ...)
 {
 	static const char PREFIXES[] = { '\0', 'E', 'W', 'I', 'D', 'V' };
 	static const char* COLORS[] = {
@@ -27,9 +27,9 @@ void ssd1306_log(unsigned level, const char* function, const char* format, ...)
 	assert(level < _countof(PREFIXES));
 	assert(level < _countof(COLORS));
 
-	esp_log_write(level, LOG_DOMAIN, "%s%c (%s) %s[%s]: ", 
+	esp_log_write(level, LOG_DOMAIN, "%s%c (%s) %s[%s:%d]: ", 
 		COLORS[level], PREFIXES[level],  esp_log_system_timestamp(),
-		LOG_DOMAIN, function);
+		LOG_DOMAIN, function, line);
 
     va_list list;
 

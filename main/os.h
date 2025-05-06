@@ -9,8 +9,10 @@ extern "C" {
 #include <string.h>
 
 #include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
+
 #include <esp_check.h>
 
 #define SSD1306_RST_TIMEOUT 100
@@ -31,14 +33,15 @@ void ssd1306_i2c_send(ssd1306_i2c_t device, const uint8_t* data, size_t size);
 void ssd1306_spi_send(ssd1306_spi_t device, const uint8_t* data, size_t size);
 
 void ssd1306_log_level(unsigned level);
-void ssd1306_log(unsigned level, const char* function, const char* format, ...);
+void ssd1306_log(unsigned level, const char* function, int line, const char* format, ...);
 
 extern const char* LOG_DOMAIN;
 
+#define LOG_ENABLED(level) _ESP_LOG_ENABLED(level)
 #define LOG_INVOKE(level, format, ...) \
 	do { \
-		if( _ESP_LOG_ENABLED(level) ) { \
-			ssd1306_log(level, __FUNCTION__, format, ##__VA_ARGS__); \
+		if( LOG_ENABLED(level) ) { \
+			ssd1306_log(level, __FUNCTION__, __LINE__, format, ##__VA_ARGS__); \
 		} \
 	} while( 0 )
 
@@ -47,6 +50,13 @@ extern const char* LOG_DOMAIN;
 #define LOG_I(format, ...) LOG_INVOKE(ESP_LOG_INFO, format, ##__VA_ARGS__)
 #define LOG_D(format, ...) LOG_INVOKE(ESP_LOG_DEBUG, format, ##__VA_ARGS__)
 #define LOG_V(format, ...) LOG_INVOKE(ESP_LOG_VERBOSE, format, ##__VA_ARGS__)
+
+#if CONFIG_SSD1306_LOGGING_LEVEL_VERBOSE
+#include <stdarg.h>
+void ssd1306_dump(const void* data, size_t size, const char* format, ...);
+#else
+#define ssd1306_dump(data, size, format, ...) (void)0
+#endif
 
 #if 0
 void ssd1306_i2c_free(ssd1306_i2c_t dev);

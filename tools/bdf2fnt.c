@@ -209,13 +209,25 @@ typedef enum {
 typedef struct {
 	char name[16];
 	unsigned width;
-	unsigned height;
+	union {
+		unsigned index;
+		unsigned height;
+	};
+	int bbx[4];
 	unsigned encoding;
-	uint16_t bitmap[0];
+	uint16_t image[0];
 } bdf_glyph_t;
 
 typedef struct {
+	uint16_t width;
+	uint16_t height;
+	uint8_t image[0];
+} bdf_bitmap_t;
+
+typedef struct {
 	char name[80];
+	unsigned ascent;
+	unsigned descent;
 	unsigned width;
 	unsigned height;
 	unsigned chars;
@@ -318,12 +330,14 @@ static bdf_info_t* parse_bdf_info()
 			continue;
 		}
 		if( is_token(&line, "FONT_ASCENT") ) {
-			info->height += strtoul(line, &line, 10);
+			info->ascent += strtoul(line, &line, 10);
+			info->height = info->ascent + info->descent;
 
 			continue;
 		}
 		if( is_token(&line, "FONT_DESCENT") ) {
-			info->height += strtoul(line, &line, 10);
+			info->descent += strtoul(line, &line, 10);
+			info->height = info->ascent + info->descent;
 
 			continue;
 		}
@@ -353,7 +367,7 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 		switch( info->state ) {
 			case state_idle:
 				if( is_token(&line, "STARTCHAR") ) {
-					glyph = calloc(1, sizeof(bdf_glyph_t) + info->height * sizeof(glyph->bitmap[0]));
+					glyph = calloc(1, sizeof(bdf_glyph_t) + (info->height) * sizeof(glyph->image[0]));
 
 					strncpy(glyph->name, line, 15);
 
@@ -375,9 +389,27 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 
 					continue;
 				}
+				if( is_token(&line, "BBX") ) {
+					glyph->bbx[0] = strtoul(line, &line, 10);
+					glyph->bbx[1] = strtoul(line, &line, 10);
+					glyph->bbx[2] = strtoul(line, &line, 10);
+					glyph->bbx[3] = strtoul(line, &line, 10);
 
+					if( options.verbosity > 2 ) {
+						printf("BBX = %d, %d, %d, %d\n",
+							glyph->bbx[0], glyph->bbx[1], glyph->bbx[2], glyph->bbx[3]);
+					}
+
+					continue;
+				}
 				if( is_token(&line, "BITMAP") ) {
 					info->state = state_bitmap;
+
+					glyph->index = info->height - (glyph->bbx[1] + (info->descent + glyph->bbx[3]));
+
+					if( options.verbosity > 2 ) {
+						printf("BITMAP %s starts at index = %d\n", glyph->name, glyph->index);
+					}
 
 					continue;
 				}
@@ -387,13 +419,15 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 				if( is_token(&line, "ENDCHAR") ) {
 					info->state = state_idle;
 
+					glyph->height = info->height;
+
 					return glyph;
 				}
 
-				if( glyph->height < info->height ) {
-					glyph->bitmap[glyph->height++] = strtoul(line, &line, 16);
+				if( glyph->index < info->height ) {
+					glyph->image[glyph->index++] = strtoul(line, &line, 16) >> glyph->bbx[2];
 				} else {
-					fail(info, "glyph has too many bytes");
+					fail(info, "glyph has too many bytes, index = %u, height = %u", glyph->index, info->height);
 				}
 
 			continue;
@@ -405,18 +439,73 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 	return glyph;
 }
 
-void write_glyph(bdf_info_t* info, bdf_glyph_t* glyph)
+void write_glyph(bdf_info_t* info, const bdf_glyph_t* glyph)
 {
 	unsigned bytes;
 
 	for( bytes = 0; bytes < glyph->height; bytes++ ) {
-		fwrite(glyph->bitmap + bytes, glyph->width/8, 1, info->output);
+		fwrite(glyph->image + bytes, glyph->width/8, 1, info->output);
 	}
-	for( ; bytes < info->height; bytes++ ) {
-		static uint16_t ZERO = 0;
+}
 
-		fwrite(&ZERO, glyph->width/8, 1, info->output);
+void write_bitmap(bdf_info_t* info, const bdf_bitmap_t* bitmap)
+{
+// #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+// 	fwrite(&bitmap->width, sizeof(bitmap->width), 1, info->output);
+// 	fwrite(&bitmap->height, sizeof(bitmap->height), 1, info->output);
+// #else
+// #error TODO unsupported endian order
+// #endif
+	unsigned rows = bitmap->height / 8 + bitmap->height % 8 ? 1 : 0;
+
+	for( unsigned row = 0; row < rows; row++ ) {
+		fwrite(bitmap->image + row * bitmap->width, bitmap->width, 1, info->output);
 	}
+}
+
+bool get_glyph_pixel(const bdf_glyph_t* glyph, unsigned x, unsigned y)
+{
+	assert(x < glyph->width);
+	assert(y < glyph->height);
+
+	unsigned position = (x / 8) * glyph->height + y;
+	unsigned s_mask = 0x80 >> (x % 8);
+
+	return glyph->image[position] & s_mask;
+}
+
+void set_bitmap_pixel(bdf_bitmap_t* bitmap, unsigned x, unsigned y, bool value)
+{
+	assert(x < bitmap->width);
+	assert(y < bitmap->height);
+
+	unsigned position = (y / 8) * bitmap->width + x;
+	unsigned s_mask = 0x01 << (y % 8);
+	unsigned d_mask = ~s_mask;
+
+	bitmap->image[position] &= d_mask;
+
+	if( value ) {
+		bitmap->image[position] |= s_mask;
+	}
+}
+
+bdf_bitmap_t* rotate_glyph(const bdf_glyph_t* glyph)
+{
+	unsigned pages = glyph->height / 8 + glyph->height % 8 ? 1 : 0;
+
+	bdf_bitmap_t* bitmap = calloc(1, sizeof(bdf_bitmap_t) + pages * glyph->width);
+
+	bitmap->width = glyph->width;
+	bitmap->height = glyph->height;
+
+	for( unsigned x = 0; x < bitmap->width; x++ ) {
+		for( unsigned y = 0; y < bitmap->height; y++ ) {
+			set_bitmap_pixel(bitmap, x, y, get_glyph_pixel(glyph, x, y));
+		}
+	}
+
+	return bitmap;
 }
 
 int main(int argc, char* const argv[])
@@ -444,7 +533,7 @@ int main(int argc, char* const argv[])
 			printf("\tbitmap ");
 
 			for( int b = 0; b < glyph->height; b++ ) {
-				printf("%0*x ", glyph->width/4, glyph->bitmap[b]);
+				printf("%0*x ", glyph->width/4, glyph->image[b]);
 			}
 
 			printf("\n");
@@ -456,7 +545,13 @@ int main(int argc, char* const argv[])
 		}
 
 		if( glyph->encoding >= options.from && glyph->encoding <= options.to ) {
-			write_glyph(info, glyph);
+			bdf_bitmap_t* bitmap = rotate_glyph(glyph);
+
+			write_bitmap(info, bitmap);
+
+			free(bitmap);
+
+			// write_glyph(info, glyph);
 		}
 
 		free(glyph);

@@ -8,21 +8,58 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
+#if !defined(PACKED)
+#define PACKED __attribute__((packed))
+#endif
+
 typedef struct ssd1306_s* ssd1306_t;
 typedef struct ssd1306_init_s* ssd1306_init_t;
 
-typedef uint8_t ssd1306_glyph_t[8];
+typedef struct PACKED ssd1306_point_t {
+	int x, y;
+} ssd1306_point_t;
 
-typedef struct ssd1306_init_s {
-	unsigned width;
-	unsigned height;
+typedef struct PACKED ssd1306_size_t {
+	unsigned width, height;
+} ssd1306_size_t;
 
-	bool flip;
-	bool invert;
+typedef struct PACKED ssd1306_bounds_t {
+	union {
+		struct ssd1306_point_t;
+		struct ssd1306_point_t origin;
+	};
+	union {
+		struct ssd1306_size_t;
+		struct ssd1306_size_t size;
+	};
+} ssd1306_bounds_t;
+
+typedef struct PACKED ssd1306_bitmap_t {
+	union {
+		struct ssd1306_size_t;
+		struct ssd1306_size_t size;
+	};
+	const uint8_t image[];
+} ssd1306_bitmap_t;
+
+typedef struct PACKED ssd1306_glyph_t {
+	const uint8_t image[8];
+} ssd1306_glyph_t;
+
+typedef struct PACKED ssd1306_init_s {
+	struct PACKED {
+		bool flip;
+		bool invert;
+	};
+
+	union {
+		struct ssd1306_size_t;
+		struct ssd1306_size_t size;
+	};
 
 	const ssd1306_glyph_t* font;
 
-	struct {
+	struct PACKED {
 		enum {
 			ssd1306_type_i2c, ssd1306_type_spi
 		} type;
@@ -30,13 +67,13 @@ typedef struct ssd1306_init_s {
 		int16_t rst;
 
 		union {
-			struct {
+			struct PACKED {
 				int16_t sda;
 				int16_t scl;
 
 				uint16_t port;
 			};
-			struct {
+			struct PACKED {
 				int16_t mosi;
 				int16_t sclk;
 				int16_t cs;
@@ -50,51 +87,51 @@ typedef struct ssd1306_init_s {
 	} connection;
 } ssd1306_init_s;
 
-typedef struct {
-	int x, y;
-	unsigned w, h;
-} ssd1306_bounds_t;
-
 #undef __SSD1306_FREE
 
 // initialisation
 ssd1306_init_t ssd1306_create_init();
 ssd1306_t      ssd1306_init(ssd1306_init_t init);
+
 #if __SSD1306_FREE
 void           ssd1306_free(ssd1306_t device);
 #endif
+
+bool ssd1306_acquire(ssd1306_t device);
+void ssd1306_release(ssd1306_t device);
+void ssd1306_update(ssd1306_t device);
+
+void ssd1306_auto_update(ssd1306_t device, bool on);
 
 // features
 void ssd1306_on(ssd1306_t device, bool on);
 void ssd1306_contrast(ssd1306_t device, uint8_t contrast);
 
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
-void ssd1306_bitmap_b(ssd1306_t device, const uint8_t* bitmap, const ssd1306_bounds_t* bounds);
-void ssd1306_text_b(ssd1306_t device, const char* text, const ssd1306_bounds_t* bounds);
+void ssd1306_bitmap_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
+void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* text);
 
 #define ssd1306_clear(device, _x, _y, _w, _h) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, w: _w, h: _h, \
+			x: _x, y: _y, width: _w, height: _h, \
 		}; \
 		ssd1306_clear_b(device, &b); \
 	} while( 0 )
-#define ssd1306_bitmap(device, bitmap, _x, _y, _w, _h) \
+#define ssd1306_bitmap(device, _x, _y, _w, _h, bitmap) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, w: _w, h: _h, \
+			x: _x, y: _y, width: _w, height: _h, \
 		}; \
-		ssd1306_bitmap_b(device, bitmap, &b); \
+		ssd1306_bitmap_b(device, &b, bitmap); \
 	} while( 0 )
-#define ssd1306_text(device, text, _x, _y, _w) \
+#define ssd1306_text(device, _x, _y, _w, _h, text) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, w: _w, \
+			x: _x, y: _y, width: _w, height: _h, \
 		}; \
-		ssd1306_text_b(device, text, &b); \
+		ssd1306_text_b(device, &b, text); \
 	} while( 0 )
-
-void ssd1306_auto_flush(ssd1306_t device, bool on);
 
 #if defined(__cplusplus)
 }

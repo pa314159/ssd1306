@@ -14,7 +14,7 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
-	ESP_LOGI(TAG, "size = %ux%u, font['@'][0] =  %02x", init->width, init->height, init->font['@'][0]);
+	ESP_LOGI(TAG, "size = %ux%u, font['@'][0] =  %02x", init->width, init->height, init->font['@'].image[0]);
 
 	// ssd1306_text(device, "hello", 0, 0, 5);
 

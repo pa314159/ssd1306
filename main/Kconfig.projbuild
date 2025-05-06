@@ -79,7 +79,20 @@ menu "SSD1306 Configuration"
         default true
         help
             Show a splash screen at startup.
-        
+
+    config SSD1306_PRIORITY
+        int "Rendering priority"
+        range 0 20
+        default 10
+        help
+            The priority of the rendering task.
+
+    config SSD1306_OPTIMIZE
+        bool "Optimize rendering"
+        default true
+        help
+            Update only changed area.
+                        
     choice SSD1306_INTERFACE
         prompt "Interface"
         default SSD1306_I2C

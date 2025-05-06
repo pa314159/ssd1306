@@ -21,8 +21,10 @@ void ssd1306_dump(const void* data, size_t size, const char* format, ...)
 	for( ; offs < size; offs++, buff++ ) {
 		const unsigned rest = offs % NUM_DIGITS;
 
-		if( rest == 0 && text[0] ) {
-			LOG_V("%s", text);
+		if( rest == 0 ) {
+			if( text[0] ) {
+				LOG_V("%s", text);
+			}
 
 			tpos = 0;
 			tpos += snprintf(text + tpos, sizeof(text) - tpos, "%p: ", buff);
