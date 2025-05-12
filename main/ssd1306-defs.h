@@ -37,7 +37,7 @@
 #define OLED_CMD_SET_DISPLAY_START_LINE 0x40
 #define OLED_CMD_SET_SEGMENT_REMAP      0xA0    // SEG0...SEG127 or SEG127...SEG0 (|0x01)
 #define OLED_CMD_SET_MUX_RATIO          0xA8    // follow with 0x3F = 64 MUX
-#define OLED_CMD_SET_COM_SCAN_MODE      0xC0    // COM0...COM[N-1] or COM[N-1]...COM0 (|0x80)
+#define OLED_CMD_SET_COM_SCAN_MODE      0xC0    // COM0...COM[N-1] or COM[N-1]...COM0 (|0x08)
 #define OLED_CMD_SET_DISPLAY_OFFSET     0xD3    // follow with 0x00
 #define OLED_CMD_SET_COM_PIN_MAP        0xDA    // follow with 0x12
 #define OLED_CMD_NOP                    0xE3    // NOP

@@ -59,6 +59,10 @@ typedef struct PACKED ssd1306_init_s {
 
 	const ssd1306_glyph_t* font;
 
+	struct {
+		char off, on;
+	} text_invert;
+
 	struct PACKED {
 		enum {
 			ssd1306_type_i2c, ssd1306_type_spi
@@ -111,6 +115,13 @@ void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
 void ssd1306_bitmap_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
 void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* text);
 
+typedef enum {
+	ssd1306_status_0,
+	ssd1306_status_1,
+} ssd1306_status_t;
+
+void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);
+
 #define ssd1306_clear(device, _x, _y, _w, _h) \
 	do { \
 		const ssd1306_bounds_t b = { \
@@ -125,10 +136,10 @@ void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char
 		}; \
 		ssd1306_bitmap_b(device, &b, bitmap); \
 	} while( 0 )
-#define ssd1306_text(device, _x, _y, _w, _h, text) \
+#define ssd1306_text(device, _x, _y, _w, text) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, width: _w, height: _h, \
+			x: _x, y: _y, width: _w, height: 8, \
 		}; \
 		ssd1306_text_b(device, &b, text); \
 	} while( 0 )

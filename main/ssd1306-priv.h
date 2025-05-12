@@ -42,9 +42,6 @@ void ssd1306_send_data(ssd1306_t device, const uint8_t* data, size_t size);
 
 #if CONFIG_SSD1306_SPLASH
 void ssd1306_show_splash(ssd1306_t device);
-void ssd1306_fill_page_2(ssd1306_t device, unsigned page, unsigned offset, unsigned width, const uint8_t* data, int s_bits, uint8_t d_mask);
-void ssd1306_fill_page_1(ssd1306_t device, unsigned page, unsigned offset, unsigned width, const uint8_t* data, int s_bits);
-bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size);
 #endif
 
 inline unsigned minu(unsigned a, unsigned b)

@@ -14,11 +14,11 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
-	ESP_LOGI(TAG, "size = %ux%u, font['@'][0] =  %02x", init->width, init->height, init->font['@'].image[0]);
+	ssd1306_clear_b(device, NULL);
+	ssd1306_status(device, ssd1306_status_0, "idle...");
+	vTaskDelay(pdMS_TO_TICKS(10000));
+	ssd1306_status(device, ssd1306_status_1, "restart...");
+	vTaskDelay(pdMS_TO_TICKS(2500));
 
-	// ssd1306_text(device, "hello", 0, 0, 5);
-
-	// vTaskDelay(pdMS_TO_TICKS(60000));
-
-	// esp_restart();
+	esp_restart();
 }

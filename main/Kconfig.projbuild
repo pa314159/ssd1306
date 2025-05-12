@@ -67,7 +67,13 @@ menu "SSD1306 Configuration"
         default false
         help
             Flip upside down.
-                
+
+    config SSD1306_INVERT
+        bool "Invert colors"
+        default false
+        help
+            Black is white and white is black.
+
     config SSD1306_FONT
         string "Embedded font"
         default "ib8x8u"
@@ -81,11 +87,17 @@ menu "SSD1306 Configuration"
             Show a splash screen at startup.
 
     config SSD1306_PRIORITY
-        int "Rendering priority"
+        int "Rendering task priority"
         range 0 20
         default 10
         help
             The priority of the rendering task.
+
+    config SSD1306_STACK_SIZE
+        int "Rendering task stack size (kB)"
+        default 4
+        help
+            The stack size of the rendering task.
 
     config SSD1306_OPTIMIZE
         bool "Optimize rendering"

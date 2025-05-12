@@ -1,4 +1,4 @@
-FILE(GLOB_RECURSE app_sources ssd*.c os*.c)
+FILE(GLOB_RECURSE app_sources ssd1306*.c os*.c)
 
 if(CONFIG_SSD1306_SPLASH)
 	list(APPEND app_sources splash.c)

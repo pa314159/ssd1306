@@ -8,6 +8,13 @@
 
 #if CONFIG_SSD1306_SPI
 static const ssd1306_init_s init_default = {
+#if CONFIG_SSD1306_FLIP
+	flip: true,
+#endif
+#if CONFIG_SSD1306_INVERT
+	invert: true,
+#endif
+
 	width: CONFIG_SSD1306_WIDTH,
 	height: CONFIG_SSD1306_HEIGHT,
 

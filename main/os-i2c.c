@@ -11,10 +11,22 @@
 
 #if CONFIG_SSD1306_I2C
 static const ssd1306_init_s init_default = {
+#if CONFIG_SSD1306_FLIP
+	flip: true,
+#endif
+#if CONFIG_SSD1306_INVERT
+	invert: true,
+#endif
+
 	width: CONFIG_SSD1306_WIDTH,
 	height: CONFIG_SSD1306_HEIGHT,
 
 	font: ssd1306_default_font,
+
+	text_invert: {
+		off: 0x0e,
+		on: 0x0f,
+	},
 
 	connection: {
 		type: ssd1306_type_i2c,

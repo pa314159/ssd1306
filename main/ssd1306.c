@@ -5,10 +5,9 @@
 
 static void ssd1306_init_screen(ssd1306_t device);
 static void ssd1306_mask_page(ssd1306_t device, unsigned page, unsigned offset, unsigned width, uint8_t mask);
-#if !CONFIG_SSD1306_SPLASH
-static void ssd1306_fill_page_2(ssd1306_t device, unsigned page, unsigned offset, unsigned width, const uint8_t* data, uint8_t d_mask, int s_bits);
-bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size);
-#endif
+static void ssd1306_fill_page_1(ssd1306_t device, unsigned page, unsigned offset, unsigned width, const uint8_t* data, int s_bits);
+static void ssd1306_fill_page_2(ssd1306_t device, unsigned page, unsigned offset, unsigned width, const uint8_t* data, int s_bits, uint8_t d_mask);
+static bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size);
 
 ssd1306_t ssd1306_init(ssd1306_init_t init)
 {
@@ -76,10 +75,10 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 
 	configASSERT(device->queue);
 
-	xTaskCreate((TaskFunction_t)ssd1306_task, task_name, 2048, device, CONFIG_SSD1306_PRIORITY, NULL);
+	xTaskCreate((TaskFunction_t)ssd1306_task, task_name, 1024 * CONFIG_SSD1306_STACK_SIZE, device, CONFIG_SSD1306_PRIORITY, NULL);
 #else
 	TaskHandle_t task;
-	xTaskCreate((TaskFunction_t)ssd1306_task, task_name, 3072, device, CONFIG_SSD1306_PRIORITY, &task);
+	xTaskCreate((TaskFunction_t)ssd1306_task, task_name,  1024 * CONFIG_SSD1306_STACK_SIZE, device, CONFIG_SSD1306_PRIORITY, &task);
 	device->task = task;
 #endif
 
@@ -117,6 +116,43 @@ void ssd1306_free(ssd1306_t device)
 	free(device);
 }
 #endif
+
+bool ssd1306_acquire(ssd1306_t device)
+{
+	return xSemaphoreTakeRecursive(device->mutex, SSD1306_SEM_TICKS);
+}
+
+void ssd1306_release(ssd1306_t device)
+{
+	xSemaphoreGiveRecursive(device->mutex);
+}
+
+void ssd1306_update(ssd1306_t device)
+{
+	if( device->no_update == 0 ) {
+#if CONFIG_SSD1306_OPTIMIZE
+		ssd1306_bounds_t m = {
+			width: device->width,
+			height: device->height,
+		};
+
+		if( bounds ) {
+			memcpy(&m, bounds, sizeof(m));
+		}
+
+		xQueueSend(device->queue, &m, portMAX_DELAY);
+#else
+		xTaskNotifyGive(device->task);
+#endif
+	}
+}
+
+void ssd1306_auto_update(ssd1306_t device, bool on)
+{
+	device->no_update += on ? -1 : +1;
+
+	ssd1306_update(device);
+}
 
 void ssd1306_on(ssd1306_t device, bool on) {
 	const uint8_t data[] = {
@@ -335,12 +371,31 @@ void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char
 		return;
 	}
 
+	bool invert = false;
+
 	ssd1306_bitmap_t* bitmap = calloc(1, sizeof(ssd1306_bitmap_t) + size.width);
 
 	bitmap->size = size;
 
 	for( uint8_t* image = (uint8_t*)bitmap->image; *text; text++, image += 8 ) {
-		memcpy(image, device->font[*text & 0xFF].image, 8);
+		if( text[0] == device->text_invert.on ) {
+			invert = true;
+
+			continue;
+		}
+		if( text[0] == device->text_invert.off ) {
+			invert = false;
+
+			continue;
+		}
+
+		if( invert ) {
+			for( int k = 0; k < 8; k++ ) {
+				image[k] = ~device->font[*text & 0xFF].image[k];
+			}
+		} else {
+			memcpy(image, device->font[*text & 0xFF].image, 8);
+		}
 	}
 
 	ssd1306_bitmap_bt(device, bounds, &trimmed, bitmap);
@@ -351,23 +406,25 @@ void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char
 	ssd1306_update(device);
 }
 
-bool ssd1306_acquire(ssd1306_t device)
+void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...)
 {
-	return xSemaphoreTakeRecursive(device->mutex, SSD1306_SEM_TICKS);
-}
-void ssd1306_release(ssd1306_t device)
-{
-	xSemaphoreGiveRecursive(device->mutex);
+	unsigned size = device->width / 8;
+	char text[size];
+
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf(text, size, format, args);
+	va_end(args);
+
+	if( device->flip ) {
+		ssd1306_text(device, 0, status * 8, device->width, text);
+	} else {
+		ssd1306_text(device, 0, device->height - (2-status) * 8, device->width, text);
+	}
 }
 
-void ssd1306_auto_update(ssd1306_t device, bool on)
-{
-	device->no_update += on ? -1 : +1;
-
-	ssd1306_update(device);
-}
-
-static void ssd1306_init_screen(ssd1306_t device)
+void ssd1306_init_screen(ssd1306_t device)
 {
 	const uint8_t data[] = {
 		OLED_CTL_BYTE_CMD_STREAM,
@@ -376,7 +433,7 @@ static void ssd1306_init_screen(ssd1306_t device)
 		OLED_CMD_SET_PAGE_RANGE, 0, device->pages-1,
 		OLED_CMD_SET_MUX_RATIO, device->height-1,
 		OLED_CMD_SET_DISPLAY_OFFSET, 0x00,
-		OLED_CMD_SET_DISPLAY_START_LINE,
+		OLED_CMD_SET_DISPLAY_START_LINE | 0x00,
 		OLED_CMD_SET_CONTRAST, 0x7F,
 		OLED_CMD_SET_SEGMENT_REMAP | (device->flip ? 0x01 : 0x00),
 		OLED_CMD_SET_COM_SCAN_MODE | (device->flip ? 0x08 : 0x00),
@@ -394,26 +451,6 @@ static void ssd1306_init_screen(ssd1306_t device)
 	};
 
 	ssd1306_send_data(device, data, _countof(data));
-}
-
-void ssd1306_update(ssd1306_t device)
-{
-	if( device->no_update == 0 ) {
-#if CONFIG_SSD1306_OPTIMIZE
-		ssd1306_bounds_t m = {
-			width: device->width,
-			height: device->height,
-		};
-
-		if( bounds ) {
-			memcpy(&m, bounds, sizeof(m));
-		}
-
-		xQueueSend(device->queue, &m, portMAX_DELAY);
-#else
-		xTaskNotifyGive(device->task);
-#endif
-	}
 }
 
 bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size)
