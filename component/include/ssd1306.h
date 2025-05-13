@@ -12,9 +12,6 @@ extern "C" {
 #define PACKED __attribute__((packed))
 #endif
 
-typedef struct ssd1306_s* ssd1306_t;
-typedef struct ssd1306_init_s* ssd1306_init_t;
-
 typedef struct PACKED ssd1306_point_t {
 	int x, y;
 } ssd1306_point_t;
@@ -90,8 +87,17 @@ typedef struct PACKED ssd1306_init_s {
 		uint16_t freq;
 	} connection;
 } ssd1306_init_s;
+typedef struct ssd1306_init_s* ssd1306_init_t;
+
+typedef struct ssd1306_s {
+	const struct ssd1306_init_s;
+	const unsigned pages;
+} ssd1306_s;
+typedef struct ssd1306_s* ssd1306_t;
 
 #undef __SSD1306_FREE
+
+extern const ssd1306_bitmap_t* splash_bmp;
 
 // initialisation
 ssd1306_init_t ssd1306_create_init();
@@ -101,16 +107,21 @@ ssd1306_t      ssd1306_init(ssd1306_init_t init);
 void           ssd1306_free(ssd1306_t device);
 #endif
 
+// operations
+void ssd1306_on(ssd1306_t device, bool on);
+void ssd1306_contrast(ssd1306_t device, uint8_t contrast);
+
+// lower level
+void ssd1306_auto_update(ssd1306_t device, bool on);
+
 bool ssd1306_acquire(ssd1306_t device);
 void ssd1306_release(ssd1306_t device);
 void ssd1306_update(ssd1306_t device);
 
-void ssd1306_auto_update(ssd1306_t device, bool on);
+// lowest level
+uint8_t* ssd1306_raster(ssd1306_t device, unsigned page);
 
 // features
-void ssd1306_on(ssd1306_t device, bool on);
-void ssd1306_contrast(ssd1306_t device, uint8_t contrast);
-
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
 void ssd1306_bitmap_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
 void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* text);
@@ -118,6 +129,8 @@ void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char
 typedef enum {
 	ssd1306_status_0,
 	ssd1306_status_1,
+	ssd1306_status_ext, // the external status line - the line that's Close To The Edge, YES ;)
+	ssd1306_status_int, // the internal status line
 } ssd1306_status_t;
 
 void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);

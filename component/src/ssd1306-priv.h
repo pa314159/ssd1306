@@ -2,15 +2,14 @@
 
 #include "os.h"
 
-typedef struct ssd1306_s {
-	struct ssd1306_init_s;
+typedef struct ssd1306_priv_s* ssd1306_priv_t;
+typedef struct ssd1306_priv_s {
+	const struct ssd1306_s;
 
 	union {
 		ssd1306_i2c_t i2c;
 		ssd1306_spi_t spi;
 	};
-
-	unsigned pages;
 
 	bool volatile active;
 	unsigned no_update;
@@ -25,7 +24,7 @@ typedef struct ssd1306_s {
 
 	uint8_t head[1];
 	uint8_t data[];
-} ssd1306_s;
+} ssd1306_priv_s;
 
 #if CONFIG_SSD1306_OPTIMIZE
 typedef struct {
@@ -34,15 +33,8 @@ typedef struct {
 } ssd1306_message_t;
 #endif
 
-#define raster_head(device)       ((device)->head)
-#define raster_page(device, page) ((device)->data + (page) * device->width)
-
-void ssd1306_task(ssd1306_t device);
-void ssd1306_send_data(ssd1306_t device, const uint8_t* data, size_t size);
-
-#if CONFIG_SSD1306_SPLASH
-void ssd1306_show_splash(ssd1306_t device);
-#endif
+void ssd1306_task(ssd1306_priv_t dev);
+void ssd1306_send_data(ssd1306_priv_t dev, const uint8_t* data, size_t size);
 
 inline unsigned minu(unsigned a, unsigned b)
 {

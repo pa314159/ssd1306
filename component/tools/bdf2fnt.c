@@ -439,15 +439,6 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 	return glyph;
 }
 
-void write_glyph(bdf_info_t* info, const bdf_glyph_t* glyph)
-{
-	unsigned bytes;
-
-	for( bytes = 0; bytes < glyph->height; bytes++ ) {
-		fwrite(glyph->image + bytes, glyph->width/8, 1, info->output);
-	}
-}
-
 void write_bitmap(bdf_info_t* info, const bdf_bitmap_t* bitmap)
 {
 // #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -550,8 +541,6 @@ int main(int argc, char* const argv[])
 			write_bitmap(info, bitmap);
 
 			free(bitmap);
-
-			// write_glyph(info, glyph);
 		}
 
 		free(glyph);

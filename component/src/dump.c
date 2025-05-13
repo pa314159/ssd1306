@@ -1,5 +1,6 @@
-#include "sdkconfig.h"
-#include "ssd1306.h"
+#include <sdkconfig.h>
+#include <ssd1306.h>
+
 #include "ssd1306-priv.h"
 
 #define NUM_DIGITS 32

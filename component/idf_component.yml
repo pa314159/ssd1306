@@ -1,0 +1,7 @@
+version: "0.1.0"
+description: "Optimised implementation of the SSD1306 interface"
+licence: "AGPL"
+
+dependencies:
+  idf:
+    version: ">=5.4"
