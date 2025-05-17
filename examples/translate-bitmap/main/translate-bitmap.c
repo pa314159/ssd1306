@@ -46,7 +46,7 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_clear_b(device, NULL);
 	ssd1306_auto_update(device, false);
 	for( bounds.x = x1, bounds.y = posY; bounds.x >= x0; bounds.x-- ) {
-		ssd1306_bitmap_b(device, &bounds, bitmap);
+		ssd1306_draw_b(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 		ssd1306_auto_update(device, false);
@@ -61,7 +61,7 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_clear_b(device, NULL);
 	ssd1306_auto_update(device, false);
 	for( bounds.x = posX, bounds.y = y0; bounds.y <= y1; bounds.y++ ) {
-		ssd1306_bitmap_b(device, &bounds, bitmap);
+		ssd1306_draw_b(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 		ssd1306_auto_update(device, false);
@@ -70,7 +70,7 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_auto_update(device, true);
 
 	ssd1306_clear_b(device, NULL);
-	ssd1306_bitmap(device, posX, posY, device->width, device->height, bitmap);
+	ssd1306_draw(device, posX, posY, device->width, device->height, bitmap);
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(2500));
 }
 

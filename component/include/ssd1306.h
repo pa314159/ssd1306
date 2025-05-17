@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #if !defined(PACKED)
 #define PACKED __attribute__((packed))
@@ -17,7 +18,14 @@ typedef struct PACKED ssd1306_point_t {
 } ssd1306_point_t;
 
 typedef struct PACKED ssd1306_size_t {
-	unsigned width, height;
+	union {
+		unsigned width;
+		unsigned w;
+	 };
+	union {
+		unsigned height;
+		unsigned h;
+	};
 } ssd1306_size_t;
 
 typedef struct PACKED ssd1306_bounds_t {
@@ -32,11 +40,11 @@ typedef struct PACKED ssd1306_bounds_t {
 } ssd1306_bounds_t;
 
 typedef struct PACKED ssd1306_bitmap_t {
-	union {
+	const union {
 		struct ssd1306_size_t;
 		struct ssd1306_size_t size;
 	};
-	const uint8_t image[];
+	uint8_t image[];
 } ssd1306_bitmap_t;
 
 typedef struct PACKED ssd1306_glyph_t {
@@ -123,7 +131,8 @@ uint8_t* ssd1306_raster(ssd1306_t device, unsigned page);
 
 // features
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
-void ssd1306_bitmap_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
+void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
+void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap);
 void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* text);
 
 typedef enum {
@@ -135,6 +144,9 @@ typedef enum {
 
 void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);
 
+// others
+ssd1306_bitmap_t* ssd1306_create_bitmap(unsigned width, unsigned height);
+
 #define ssd1306_clear(device, _x, _y, _w, _h) \
 	do { \
 		const ssd1306_bounds_t b = { \
@@ -142,12 +154,19 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		}; \
 		ssd1306_clear_b(device, &b); \
 	} while( 0 )
-#define ssd1306_bitmap(device, _x, _y, _w, _h, bitmap) \
+	#define ssd1306_draw(device, _x, _y, _w, _h, bitmap) \
 	do { \
 		const ssd1306_bounds_t b = { \
 			x: _x, y: _y, width: _w, height: _h, \
 		}; \
-		ssd1306_bitmap_b(device, &b, bitmap); \
+		ssd1306_draw_b(device, &b, bitmap); \
+	} while( 0 )
+#define ssd1306_grab(device, _x, _y, _w, _h, bitmap) \
+	do { \
+		const ssd1306_bounds_t b = { \
+			x: _x, y: _y, width: _w, height: _h, \
+		}; \
+		ssd1306_grab_b(device, &b, bitmap); \
 	} while( 0 )
 #define ssd1306_text(device, _x, _y, _w, text) \
 	do { \

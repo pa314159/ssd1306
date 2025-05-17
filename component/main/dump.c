@@ -5,10 +5,10 @@
 
 #define NUM_DIGITS 32
 
-void ssd1306_dump(const void* data, size_t size, const char* format, ...)
+void ssd1306_dump_it(const void* data, size_t size, const char* format, ...)
 {
 	const uint8_t* buff = (uint8_t*)data;
-	char text[2 + 8 + 2 + 4*NUM_DIGITS + 1];
+	char text[2 + 8 + 2 + 4*NUM_DIGITS + NUM_DIGITS / 8 + 1];
 
 	size_t tpos = 0;
 	size_t offs = 0;
@@ -24,11 +24,15 @@ void ssd1306_dump(const void* data, size_t size, const char* format, ...)
 
 		if( rest == 0 ) {
 			if( text[0] ) {
-				LOG_V("%s", text);
+				printf("%s\n", text);
 			}
 
 			tpos = 0;
-			tpos += snprintf(text + tpos, sizeof(text) - tpos, "%p: ", buff);
+			tpos += snprintf(text + tpos, sizeof(text) - tpos, "%p:", buff);
+		}
+
+		if( tpos > 11 && rest % 8 == 0 ) {
+			text[tpos++] = ' ';
 		}
 
 		tpos += snprintf(text + tpos, sizeof(text) - tpos, " %02x", *buff);
@@ -37,6 +41,6 @@ void ssd1306_dump(const void* data, size_t size, const char* format, ...)
 	}
 
 	if( offs % NUM_DIGITS ) {
-		LOG_V("%s", text);
+		printf("%s\n", text);
 	}
 }

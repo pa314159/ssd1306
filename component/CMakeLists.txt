@@ -1,8 +1,4 @@
-FILE(GLOB_RECURSE cmp_sources src/ssd1306*.c src/os*.c)
-
-if(CONFIG_SSD1306_LOGGING_LEVEL_VERBOSE)
-	list(APPEND cmp_sources src/dump.c)
-endif()
+FILE(GLOB_RECURSE cmp_sources main/*.c)
 
 idf_component_register(
 	SRCS ${cmp_sources}

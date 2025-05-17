@@ -7,9 +7,14 @@
 
 const char* LOG_DOMAIN = "SSD1306";
 
-void ssd1306_log_level(unsigned level)
+void ssd1306_log_set_level(unsigned level)
 {
 	esp_log_level_set(LOG_DOMAIN, (esp_log_level_t)level);
+}
+
+unsigned ssd1306_log_get_level()
+{
+	return esp_log_level_get_timeout(LOG_DOMAIN);
 }
 
 void ssd1306_log(unsigned level, const char* function, int line, const char* format, ...)

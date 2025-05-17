@@ -76,7 +76,7 @@ static void bouncing_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 			ssd1306_status(device, ssd1306_status_1, "t \x0f%6.1fus\x0e Y \x0f%3d", diff_local, bounds.y);
 		}
 
-		ssd1306_bitmap_b(device, &bounds, bitmap);
+		ssd1306_draw_b(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 		ssd1306_auto_update(device, false);
