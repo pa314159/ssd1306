@@ -55,9 +55,12 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	fill_with_random(device);
+
 	vTaskDelay(pdMS_TO_TICKS(1000));
 	expand_black_rectangle(device);
 
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	esp_restart();
 }

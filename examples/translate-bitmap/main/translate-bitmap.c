@@ -79,8 +79,11 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
+	vTaskDelay(pdMS_TO_TICKS(2000));
 	translate_bitmap(device, splash_bmp);
+	vTaskDelay(pdMS_TO_TICKS(2000));
 	translate_bitmap(device, &ugly_bitmap);
 
+	vTaskDelay(pdMS_TO_TICKS(2000));
 	esp_restart();
 }

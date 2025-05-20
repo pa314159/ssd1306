@@ -32,9 +32,9 @@ ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init);
 void ssd1306_i2c_send(ssd1306_i2c_t device, const uint8_t* data, size_t size);
 void ssd1306_spi_send(ssd1306_spi_t device, const uint8_t* data, size_t size);
 
-void ssd1306_log_set_level(unsigned level);
-unsigned ssd1306_log_get_level();
-void ssd1306_log(unsigned level, const char* function, int line, const char* format, ...);
+void ssd1306_log_set_level(uint8_t level);
+uint8_t ssd1306_log_get_level();
+void ssd1306_log(uint8_t level, const char* function, int line, const char* format, ...);
 
 void ssd1306_dump_it(const void* data, size_t size, const char* format, ...);
 

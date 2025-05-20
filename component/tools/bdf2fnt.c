@@ -219,8 +219,8 @@ typedef struct {
 } bdf_glyph_t;
 
 typedef struct {
-	uint16_t width;
-	uint16_t height;
+	uint8_t width;
+	uint8_t height;
 	uint8_t image[0];
 } bdf_bitmap_t;
 
@@ -441,13 +441,13 @@ static bdf_glyph_t* parse_bdf_glyph(bdf_info_t* info)
 
 void write_bitmap(bdf_info_t* info, const bdf_bitmap_t* bitmap)
 {
-// #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-// 	fwrite(&bitmap->width, sizeof(bitmap->width), 1, info->output);
-// 	fwrite(&bitmap->height, sizeof(bitmap->height), 1, info->output);
-// #else
-// #error TODO unsupported endian order
-// #endif
-	unsigned rows = bitmap->height / 8 + bitmap->height % 8 ? 1 : 0;
+	assert(sizeof(bitmap->width) == 1);
+	assert(sizeof(bitmap->height) == 1);
+
+	fwrite(&bitmap->width, 1, 1, info->output);
+	fwrite(&bitmap->height, 1, 1, info->output);
+
+	unsigned rows = (unsigned)bitmap->height / 8 + (unsigned)((bitmap->height % 8) ? 1 : 0);
 
 	for( unsigned row = 0; row < rows; row++ ) {
 		fwrite(bitmap->image + row * bitmap->width, bitmap->width, 1, info->output);

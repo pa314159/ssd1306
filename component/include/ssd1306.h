@@ -14,17 +14,15 @@ extern "C" {
 #endif
 
 typedef struct PACKED ssd1306_point_t {
-	int x, y;
+	int16_t x, y;
 } ssd1306_point_t;
 
 typedef struct PACKED ssd1306_size_t {
 	union {
-		unsigned width;
-		unsigned w;
+		uint16_t w, width;
 	 };
 	union {
-		unsigned height;
-		unsigned h;
+		uint16_t h, height;
 	};
 } ssd1306_size_t;
 
@@ -48,6 +46,12 @@ typedef struct PACKED ssd1306_bitmap_t {
 } ssd1306_bitmap_t;
 
 typedef struct PACKED ssd1306_glyph_t {
+	union {
+		uint8_t w, width;
+	 };
+	union {
+		uint8_t h, height;
+	};
 	const uint8_t image[8];
 } ssd1306_glyph_t;
 
@@ -108,7 +112,7 @@ typedef struct ssd1306_s* ssd1306_t;
 extern const ssd1306_bitmap_t* splash_bmp;
 
 // initialisation
-ssd1306_init_t ssd1306_create_init();
+ssd1306_init_t ssd1306_create_init(); // returned pointer can be freed after initialisation
 ssd1306_t      ssd1306_init(ssd1306_init_t init);
 
 #if __SSD1306_FREE
@@ -127,13 +131,16 @@ void ssd1306_release(ssd1306_t device);
 void ssd1306_update(ssd1306_t device);
 
 // lowest level
-uint8_t* ssd1306_raster(ssd1306_t device, unsigned page);
+uint8_t* ssd1306_raster(ssd1306_t device, uint8_t page);
+ssd1306_bitmap_t* ssd1306_create_bitmap(uint16_t width, uint16_t height); // returned pointer must be freed after use
+ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...);
+uint16_t ssd1306_text_width(ssd1306_t device, const char* text);
 
 // features
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
 void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
 void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap);
-void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* text);
+void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* format, ...);
 
 typedef enum {
 	ssd1306_status_0,
@@ -143,9 +150,9 @@ typedef enum {
 } ssd1306_status_t;
 
 void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);
+ssd1306_status_t ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status, ssd1306_bounds_t* bounds);
 
 // others
-ssd1306_bitmap_t* ssd1306_create_bitmap(unsigned width, unsigned height);
 
 #define ssd1306_clear(device, _x, _y, _w, _h) \
 	do { \
@@ -168,10 +175,10 @@ ssd1306_bitmap_t* ssd1306_create_bitmap(unsigned width, unsigned height);
 		}; \
 		ssd1306_grab_b(device, &b, bitmap); \
 	} while( 0 )
-#define ssd1306_text(device, _x, _y, _w, text) \
+#define ssd1306_text(device, _x, _y, _w, _h, text) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, width: _w, height: 8, \
+			x: _x, y: _y, width: _w, height: _h, \
 		}; \
 		ssd1306_text_b(device, &b, text); \
 	} while( 0 )

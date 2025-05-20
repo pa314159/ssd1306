@@ -51,12 +51,13 @@ void scroll_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 
 		ssd1306_grab_b(device, &bounds, moving);
 		ssd1306_clear_b(device, &bounds);
+
 		bounds.x++;
+
 		ssd1306_draw_b(device, &bounds, moving);
+		ssd1306_status(device, ssd1306_status_ext, "x = %+d, y = %+d", bounds.x, bounds.y);
 
 		ssd1306_auto_update(device, true);
-
-		// ssd1306_status(device, ssd1306_status_ext, "x = %d, y = %d", bounds.x, bounds.y);
 
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 	}
@@ -73,8 +74,11 @@ void scroll_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 
 		ssd1306_grab_b(device, &bounds, moving);
 		ssd1306_clear_b(device, &bounds);
+
 		bounds.y++;
+
 		ssd1306_draw_b(device, &bounds, moving);
+		ssd1306_status(device, ssd1306_status_ext, "x = %+d, y = %+d", bounds.x, bounds.y);
 
 		ssd1306_auto_update(device, true);
 
@@ -90,19 +94,9 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
-	// ssd1306_draw(device, device->width - ugly_bitmap.w, 8, ugly_bitmap.w, ugly_bitmap.h, &ugly_bitmap);
-
-	// ssd1306_bounds_t bnd = { x: 8, y: 3, w: ugly_bitmap.w, h: 16 };
-
-	// ssd1306_draw_b(device, &bnd, &ugly_bitmap);
-
-	// ssd1306_bitmap_t* bmp = ssd1306_create_bitmap(bnd.w, bnd.h);
-
-	// ssd1306_grab_b(device, &bnd, bmp);
-	// vTaskDelay(pdMS_TO_TICKS(2500));
-	// ssd1306_clear_b(device, &bnd);
-	// vTaskDelay(pdMS_TO_TICKS(2500));
-	// ssd1306_draw_b(device, &bnd, bmp);
-
+	vTaskDelay(pdMS_TO_TICKS(1000));
 	scroll_bitmap(device, &ugly_bitmap);
+
+	vTaskDelay(pdMS_TO_TICKS(1000));
+	esp_restart();
 }

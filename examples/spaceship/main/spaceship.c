@@ -103,7 +103,9 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
+	vTaskDelay(pdMS_TO_TICKS(2000));
 	ssd1306_clear_b(device, NULL);
+
 	// bouncing_bitmap(device, &spaceship1_bmp);
 	bouncing_bitmap(device, &spaceship2_bmp);
 }

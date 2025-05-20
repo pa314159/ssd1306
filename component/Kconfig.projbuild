@@ -62,10 +62,6 @@ menu "SSD1306 Configuration"
         default 32 if SSD1306_128x32
         default 64 if SSD1306_128x64
 
-    config SSD1306_PAGE_HEIGHT
-        int
-        default 8
-
     config SSD1306_FLIP
         bool "Flip upside down"
         default false
@@ -86,7 +82,7 @@ menu "SSD1306 Configuration"
 
     config SSD1306_SPLASH
         bool "Splash screen"
-        default true
+        default y
         help
             Show a splash screen at startup.
 
@@ -104,8 +100,9 @@ menu "SSD1306 Configuration"
             The stack size of the rendering task.
 
     config SSD1306_OPTIMIZE
+        depends on SSD1306_EXPERIMENTAL
         bool "Optimize rendering"
-        default true
+        default y
         help
             Update only changed area.
                         
