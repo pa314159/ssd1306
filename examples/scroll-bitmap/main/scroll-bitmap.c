@@ -55,7 +55,7 @@ void scroll_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 		bounds.x++;
 
 		ssd1306_draw_b(device, &bounds, moving);
-		ssd1306_status(device, ssd1306_status_ext, "x = %+d, y = %+d", bounds.x, bounds.y);
+		ssd1306_status(device, ssd1306_status_ext, "x: %+4d, y: %+3d", bounds.x, bounds.y);
 
 		ssd1306_auto_update(device, true);
 
@@ -78,7 +78,7 @@ void scroll_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 		bounds.y++;
 
 		ssd1306_draw_b(device, &bounds, moving);
-		ssd1306_status(device, ssd1306_status_ext, "x = %+d, y = %+d", bounds.x, bounds.y);
+		ssd1306_status(device, ssd1306_status_ext, "x: %+4d, y: %+3d", bounds.x, bounds.y);
 
 		ssd1306_auto_update(device, true);
 

@@ -62,8 +62,8 @@ typedef struct PACKED ssd1306_init_s {
 	};
 
 	union {
-		struct ssd1306_size_t;
-		struct ssd1306_size_t size;
+		struct ssd1306_bounds_t;
+		struct ssd1306_bounds_t bounds;
 	};
 
 	const ssd1306_glyph_t* font;
@@ -85,6 +85,7 @@ typedef struct PACKED ssd1306_init_s {
 				int16_t scl;
 
 				uint16_t port;
+				uint8_t address;
 			};
 			struct PACKED {
 				int16_t mosi;
@@ -121,6 +122,7 @@ void           ssd1306_free(ssd1306_t device);
 
 // operations
 void ssd1306_on(ssd1306_t device, bool on);
+void ssd1306_invert(ssd1306_t device, bool on);
 void ssd1306_contrast(ssd1306_t device, uint8_t contrast);
 
 // lower level
@@ -128,7 +130,7 @@ void ssd1306_auto_update(ssd1306_t device, bool on);
 
 bool ssd1306_acquire(ssd1306_t device);
 void ssd1306_release(ssd1306_t device);
-void ssd1306_update(ssd1306_t device);
+void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds);
 
 // lowest level
 uint8_t* ssd1306_raster(ssd1306_t device, uint8_t page);

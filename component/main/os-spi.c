@@ -2,9 +2,18 @@
 #include <ssd1306.h>
 
 #include "os.h"
+#include "ssd1306-defs.h"
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+
+#if CONFIG_SSD1306_SPI_PIN_MATCH
+#define CONFIG_SSD1306_SPI_RST_PIN    5
+#define CONFIG_SSD1306_SPI_MOSI_PIN  18
+#define CONFIG_SSD1306_SPI_SCLK_PIN  19
+#define CONFIG_SSD1306_SPI_CS_PIN    16
+#define CONFIG_SSD1306_SPI_DC_PIN    17
+#endif
 
 #if CONFIG_SSD1306_SPI
 static const ssd1306_init_s init_default = {
@@ -54,7 +63,7 @@ struct ssd1306_spi_s {
 
 ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init)
 {
-	esp_log_level_set("i2c.master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
+	esp_log_level_set("spi_master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
 
 	LOG_I("MOSI PIN: %d", init->connection.mosi);
 	LOG_I("SCLK PIN: %d", init->connection.sclk);
@@ -72,7 +81,7 @@ ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init)
 	gpio_set_direction(init->connection.dc, GPIO_MODE_OUTPUT);
 	gpio_set_level(init->connection.dc, 0);
 
-	const spi_bus_config_t spi_bus = {
+	const spi_bus_config_t bus_cfg = {
 		.mosi_io_num = init->connection.mosi,
 		.sclk_io_num = init->connection.sclk,
 
@@ -83,18 +92,21 @@ ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init)
 		.data5_io_num = -1,
 		.data7_io_num = -1,
 	};
-	const spi_device_interface_config_t spi_dev = {
+	ssd1306_dump(&bus_cfg, sizeof(bus_cfg), "SPI bus config");
+
+	const spi_device_interface_config_t dev_cfg = {
 		.clock_speed_hz = 1000000 * init->connection.freq,
 		.spics_io_num = init->connection.cs,
 		.queue_size = 1,
 	};
+	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "SPI dev config");
 
 	ssd1306_spi_t spi = calloc(1, sizeof(struct ssd1306_spi_s));
 
 	memcpy(spi, init, sizeof(ssd1306_init_s));
 
-	ESP_ERROR_CHECK(spi_bus_initialize(init->connection.host, &spi_bus, SPI_DMA_CH_AUTO));
-	ESP_ERROR_CHECK(spi_bus_add_device(init->connection.host, &spi_dev, &spi->handle));
+	ESP_ERROR_CHECK(spi_bus_initialize(init->connection.host, &bus_cfg, SPI_DMA_CH_AUTO));
+	ESP_ERROR_CHECK(spi_bus_add_device(init->connection.host, &dev_cfg, &spi->handle));
 
 	if( init->connection.rst >= 0 ) {
 		gpio_reset_pin(init->connection.rst);
@@ -114,6 +126,39 @@ void ssd1306_spi_free(ssd1306_spi_t spi)
 }
 #endif
 
-void ssd1306_spi_send(ssd1306_spi_t device, const uint8_t* data, size_t size)
+#define SPI_COMM_MODE 0
+#define SPI_DATA_MODE 1
+
+void ssd1306_spi_send(ssd1306_spi_t device, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
+	switch( ctl ) {
+		case OLED_CTL_BYTE_DATA_STREAM: 
+			ssd1306_dump(data, size, "SPI buffer type = %u, size = %u, SPI_DATA_MODE", ctl, size);
+
+			gpio_set_level(device->connection.cs, SPI_DATA_MODE);
+			LOG_V("gpio %d set to %d", device->connection.cs, SPI_DATA_MODE);
+
+			break;
+
+		case OLED_CTL_BYTE_CMD_SINGLE:
+		case OLED_CTL_BYTE_CMD_STREAM:
+			ssd1306_dump(data, size, "SPI buffer type = %u, size = %u, SPI_COMM_MODE", ctl, size);
+
+			gpio_set_level(device->connection.cs, SPI_COMM_MODE);
+
+			LOG_V("gpio %d set to %d", device->connection.cs, SPI_COMM_MODE);
+			break;
+
+		default: {
+			LOG_E("Unkown SPI buffer type %u", ctl);
+			abort();
+		}
+	}
+
+	spi_transaction_t tx = {
+		length: 8 * size,
+		tx_buffer: data,
+	};
+
+	ESP_ERROR_CHECK(spi_device_transmit(device->handle, &tx));
 }

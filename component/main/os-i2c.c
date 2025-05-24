@@ -6,7 +6,6 @@
 #include <driver/gpio.h>
 #include <driver/i2c_master.h>
 
-#define SSD1306_I2C_ADDRESS 0x3C
 #define SSD1306_I2C_TIMEOUT 100 /* ms */
 
 #if CONFIG_SSD1306_I2C
@@ -37,6 +36,7 @@ static const ssd1306_init_s init_default = {
 		sda: CONFIG_SSD1306_I2C_SDA_PIN,
 
 		port: CONFIG_SSD1306_I2C_PORT,
+		address: CONFIG_SSD1306_I2C_ADDRESS,
 	},
 };
 
@@ -92,7 +92,7 @@ ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 
 	const i2c_device_config_t dev_cfg = {
 		.dev_addr_length = I2C_ADDR_BIT_LEN_7,
-		.device_address = SSD1306_I2C_ADDRESS,
+		.device_address = init->connection.address,
 		.scl_speed_hz = 1000 * init->connection.freq,
 	};
 	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "I2C dev config");
@@ -122,7 +122,17 @@ void ssd1306_i2c_free(ssd1306_i2c_t i2c)
 }
 #endif
 
-void ssd1306_i2c_send(ssd1306_i2c_t device, const uint8_t* data, size_t size)
+void ssd1306_i2c_send(ssd1306_i2c_t device, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
-	ESP_ERROR_CHECK(i2c_master_transmit(device->dev_handle, data, size, SSD1306_I2C_TIMEOUT));
+	uint8_t* temp = malloc(size+1);
+
+	temp[0] = ctl;
+
+	memcpy(temp+1, data, size);
+
+	ssd1306_dump(temp, size + 1, "I2C buffer size = %u", size + 1);
+
+	ESP_ERROR_CHECK(i2c_master_transmit(device->dev_handle, temp, size + 1, SSD1306_I2C_TIMEOUT));
+
+	free(temp);
 }

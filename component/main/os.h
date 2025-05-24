@@ -15,8 +15,10 @@ extern "C" {
 
 #include <esp_check.h>
 
+#include "dump.h"
+
 #define SSD1306_RST_TIMEOUT 100
-#define SSD1306_SEM_TIMEOUT 200
+#define SSD1306_SEM_TIMEOUT 500
 #define SSD1306_SEM_TICKS pdMS_TO_TICKS(SSD1306_SEM_TIMEOUT)
 
 #define _countof(x) (sizeof(x)/sizeof(x[0]))
@@ -29,16 +31,12 @@ extern const ssd1306_glyph_t ssd1306_default_font[] asm("_binary_" CONFIG_SSD130
 ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init);
 ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init);
 
-void ssd1306_i2c_send(ssd1306_i2c_t device, const uint8_t* data, size_t size);
-void ssd1306_spi_send(ssd1306_spi_t device, const uint8_t* data, size_t size);
+void ssd1306_i2c_send(ssd1306_i2c_t device, uint8_t ctl, const uint8_t* data, uint16_t size);
+void ssd1306_spi_send(ssd1306_spi_t device, uint8_t ctl, const uint8_t* data, uint16_t size);
 
 void ssd1306_log_set_level(uint8_t level);
 uint8_t ssd1306_log_get_level();
 void ssd1306_log(uint8_t level, const char* function, int line, const char* format, ...);
-
-void ssd1306_dump_it(const void* data, size_t size, const char* format, ...);
-
-extern const char* LOG_DOMAIN;
 
 #define LOG_ENABLED(level) \
 	_ESP_LOG_ENABLED(level) && ssd1306_log_get_level() >= level
@@ -56,13 +54,6 @@ extern const char* LOG_DOMAIN;
 #define LOG_V(format, ...) LOG_INVOKE(ESP_LOG_VERBOSE, format, ##__VA_ARGS__)
 
 extern int esp_log_level_get_timeout(const char*);
-
-#define ssd1306_dump(data, size, format, ...) \
-	do { \
-		if( LOG_ENABLED(ESP_LOG_VERBOSE) ) { \
-			ssd1306_dump_it(data, size, format, ##__VA_ARGS__); \
-		} \
-	} while( 0 )
 
 #if 0
 void ssd1306_i2c_free(ssd1306_i2c_t dev);

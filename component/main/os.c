@@ -5,7 +5,7 @@
 
 #include <esp_log_color.h>
 
-const char* LOG_DOMAIN = "SSD1306";
+const char LOG_DOMAIN[] = "SSD1306";
 
 void ssd1306_log_set_level(uint8_t level)
 {
@@ -40,9 +40,11 @@ void ssd1306_log(uint8_t level, const char* function, int line, const char* form
 	assert(level < _countof(PREFIXES));
 	assert(level < _countof(COLORS));
 
-	esp_log_write(level, LOG_DOMAIN, "%s%c (%s) %s[%s:%d]: ", 
+	const char* task_name = pcTaskGetName(NULL);
+
+	esp_log_write(level, LOG_DOMAIN, "%s%c [%s] (%s) %s[%s:%d]: ", 
 		COLORS[level], PREFIXES[level],  esp_log_system_timestamp(),
-		LOG_DOMAIN, function, line);
+		task_name, LOG_DOMAIN, function, line);
 
     va_list list;
 

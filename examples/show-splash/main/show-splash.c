@@ -26,9 +26,6 @@ void app_main(void)
 	const char* status0 = "initialised...";
 	const char* status1 = "restarting in %+d seconds...";
 
-	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(2500));
-	ssd1306_clear_b(device, NULL);
-
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
 	ssd1306_text_b(device, &bounds0, status0);
 

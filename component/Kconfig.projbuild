@@ -11,8 +11,8 @@ menu "SSD1306 Configuration"
 		default 30 if IDF_TARGET_ESP32C6
 		default 27 if IDF_TARGET_ESP32H2
 
-    choice SSD1306_LOGGING_LEVEL
-        bool "Logging level"
+    choice
+        prompt "Logging level"
         default SSD1306_LOGGING_LEVEL_INFO
 
         config SSD1306_LOGGING_LEVEL_NONE
@@ -38,7 +38,7 @@ menu "SSD1306 Configuration"
         default 4 if SSD1306_LOGGING_LEVEL_DEBUG
         default 5 if SSD1306_LOGGING_LEVEL_VERBOSE
 
-    choice SSD1306_SIZE
+    choice
         prompt "Panel Type"
         default SSD1306_128x64
         help
@@ -74,6 +74,13 @@ menu "SSD1306 Configuration"
         help
             Black is white and white is black.
 
+    config SSD1306_CONTRAST
+        int "Display contrast"
+        range 0 255
+        default 63
+        help
+            Set the initial contrast of the display.
+
     config SSD1306_FONT
         string "Embedded font"
         default "ib8x8u"
@@ -81,10 +88,10 @@ menu "SSD1306 Configuration"
             Embedded font name.
 
     config SSD1306_SPLASH
-        bool "Splash screen"
-        default y
+        int "Splash screen duration"
+        default 2500
         help
-            Show a splash screen at startup.
+            For how many milliseconds to keep the splash screen visible at startup.
 
     config SSD1306_PRIORITY
         int "Rendering task priority"
@@ -100,17 +107,16 @@ menu "SSD1306 Configuration"
             The stack size of the rendering task.
 
     config SSD1306_OPTIMIZE
-        depends on SSD1306_EXPERIMENTAL
-        bool "Optimize rendering"
-        default y
+        bool "Optimize rendering (experimental)"
+        default n
         help
             Update only changed area.
                         
     choice SSD1306_INTERFACE
-        prompt "Interface"
+        prompt "Default Interface"
         default SSD1306_I2C
         help
-            Select Interface.
+            Select the default interface to be returned by ssd1306_create_init.
         config SSD1306_I2C
             bool "I2C Interface"
             help
@@ -133,7 +139,9 @@ menu "SSD1306 Configuration"
         depends on SSD1306_I2C
         int "SCL GPIO number"
         range 0 GPIO_RANGE_MAX
-        default 22
+		default 22 if IDF_TARGET_ESP32
+		default  2 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
+		default  6 # C3 and others
         help
             GPIO number (IOxx) to I2C SCL.
             Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used to I2C.
@@ -143,7 +151,9 @@ menu "SSD1306 Configuration"
         depends on SSD1306_I2C
         int "SDA GPIO number"
         range 0 GPIO_RANGE_MAX
-        default 21
+		default 21 if IDF_TARGET_ESP32
+		default  1 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
+		default  5 # C3 and others
         help
             GPIO number (IOxx) to I2C SDA.
 
@@ -166,43 +176,83 @@ menu "SSD1306 Configuration"
             Some systems can operate I2C faster (800 kHz for ESP32, 1 MHz
             for many other 32-bit MCUs).
 
-    config SSD1306_SPI_RST_PIN
+    choice
+        depends on SSD1306_I2C
+        prompt "I2C address"
+        default SSD1306_I2C_ADDRESS_3C
+
+        config SSD1306_I2C_ADDRESS_3C
+            bool "0x3C"
+        config SSD1306_I2C_ADDRESS_3D
+            bool "0x3D"
+    endchoice
+
+    config SSD1306_I2C_ADDRESS
+        int
+        default 60 if SSD1306_I2C_ADDRESS_3C
+        default 61 if SSD1306_I2C_ADDRESS_3D
+
+    config SSD1306_SPI_PIN_MATCH
         depends on SSD1306_SPI
+        bool "Pins match connector order"
+        help
+            Custom PIN assignment matching the order of the SSD1306 connector pins.
+
+            Pins are assigned starting with GPIO19 (pin 38) as follows:
+                - D0 / SCLK -> GPIO19
+                - D1 / MOSI -> GPIO18
+                - RST       -> GPIO5
+                - DS        -> GPIO17
+                - CS        -> GPIO16
+
+        default n
+
+    config SSD1306_SPI_RST_PIN
+        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "RESET GPIO number"
         range -1 GPIO_RANGE_MAX
-        default 5
+		default 15 if IDF_TARGET_ESP32
+		default 38 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+		default  4 # C3 and others
         help
             GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
-        
+
     config SSD1306_SPI_MOSI_PIN
-        depends on SSD1306_SPI
-        int "MOSI GPIO number"
+        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
+        int "D1 / MOSI GPIO number"
         range 0 GPIO_RANGE_MAX
-        default 18
+		default 23 if IDF_TARGET_ESP32
+		default 35 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+		default  1 # C3 and others
         help
             GPIO number (IOxx) to SPI MOSI.
 
     config SSD1306_SPI_SCLK_PIN
-        depends on SSD1306_SPI
-        int "SCLK GPIO number"
+        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
+        int "D0 / SCLK GPIO number"
         range 0 GPIO_RANGE_MAX
-        default 19
+		default 18 if IDF_TARGET_ESP32
+		default 36 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+		default  2 # C3 and others
         help
             GPIO number (IOxx) to SPI SCLK.
 
     config SSD1306_SPI_CS_PIN
-        depends on SSD1306_SPI
+        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "CS GPIO number"
-        range 0 GPIO_RANGE_MAX
-        default 16
+		default  5 if IDF_TARGET_ESP32
+		default 34 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+		default 10 # C3 and others
         help
             GPIO number (IOxx) to SPI CS.
 
     config SSD1306_SPI_DC_PIN
-        depends on SSD1306_SPI
+        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "DC GPIO number"
         range 0 GPIO_RANGE_MAX
-        default 17
+		default  4 if IDF_TARGET_ESP32
+		default 37 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+		default  3 # C3 and others
         help
             GPIO number (IOxx) to SPI DC.
 

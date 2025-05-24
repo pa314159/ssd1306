@@ -9,7 +9,7 @@
 #include <esp_random.h>
 #include <esp_timer.h>
 
-#define SCREEN_SPLASH_FPS   30
+#define SCREEN_SPLASH_FPS   100
 #define SCREEN_SPLASH_TICKS pdMS_TO_TICKS(1000/SCREEN_SPLASH_FPS)
 
 const ssd1306_bitmap_t spaceship1_bmp = {
@@ -42,14 +42,14 @@ inline int random_01()
 	return esp_random() & 1;
 }
 
-static void bouncing_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
+static void bouncing_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap, bool with_status)
 {
 	TickType_t ticks = xTaskGetTickCount();
 
 	const int x_min = 0;
 	const int x_max = device->width - bitmap->width;
-	const int y_min = device->flip || device->height == 32 ? 0 : 16;
-	const int y_max = device->height - bitmap->height - (device->height == 32 ? 0 :16 - y_min);
+	const int y_min = device->flip || !with_status ? 0 : 16;
+	const int y_max = device->height - bitmap->height - (with_status ? 16 - y_min : 0);
 
 	ssd1306_bounds_t bounds = {
 		x: x_min + esp_random() % (x_max - x_min),
@@ -68,12 +68,12 @@ static void bouncing_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	while( true ) {
 		uint64_t start = esp_timer_get_time();
 
-		if( device->height == 64 ) {
+		if( with_status ) {
 			double diff_total = (start - start_total) % 1000000000ULL / 1E6;
 			double diff_local = (start - start_local) / 1E3;
 
-			ssd1306_status(device, ssd1306_status_0, "T \x0f%6.1fms\x0e X \x0f%3d", diff_total, bounds.x);
-			ssd1306_status(device, ssd1306_status_1, "t \x0f%6.1fus\x0e Y \x0f%3d", diff_local, bounds.y);
+			ssd1306_status(device, ssd1306_status_0, "T \x0f%7.2fs\x0e X \x0f%3d", diff_total, bounds.x);
+			ssd1306_status(device, ssd1306_status_1, "t \x0f%6.1fms\x0e Y \x0f%3d", diff_local, bounds.y);
 		}
 
 		ssd1306_draw_b(device, &bounds, bitmap);
@@ -103,9 +103,8 @@ void app_main(void)
 	ssd1306_init_t init = ssd1306_create_init();
 	ssd1306_t device = ssd1306_init(init);
 
-	vTaskDelay(pdMS_TO_TICKS(2000));
 	ssd1306_clear_b(device, NULL);
 
 	// bouncing_bitmap(device, &spaceship1_bmp);
-	bouncing_bitmap(device, &spaceship2_bmp);
+	bouncing_bitmap(device, &spaceship2_bmp, false);
 }

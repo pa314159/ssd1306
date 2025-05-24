@@ -52,11 +52,9 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 
 	memcpy((void*)&device->pages, &pages, sizeof(pages));
 
-	dev->head[0] = OLED_CTL_BYTE_DATA_STREAM;
-
 	LOG_I("Allocated %u bytes at %p", total, dev);
 
-	ssd1306_dump(dev, total, "");
+	ssd1306_dump(dev, sizeof(ssd1306_priv_s), "Initialisation structure");
 
 	LOG_I("Initialising device");
 	LOG_I("    Size: %ux%u", device->width, device->height);
@@ -73,7 +71,10 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		break;
 	}
 
+	LOG_I("Initialising screen");
 	ssd1306_init_screen(dev);
+
+	LOG_I("Initialising locks");
 
 	dev->mutex = xSemaphoreCreateRecursiveMutex();
 
@@ -96,6 +97,7 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 #else
 	TaskHandle_t task;
 	xTaskCreate((TaskFunction_t)ssd1306_task, task_name, 1024 * CONFIG_SSD1306_STACK_SIZE, dev, CONFIG_SSD1306_PRIORITY, &task);
+
 	dev->task = task;
 #endif
 
@@ -103,7 +105,7 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		vTaskDelay(SSD1306_SEM_TICKS);
 	}
 
-#if CONFIG_SSD1306_SPLASH
+#if CONFIG_SSD1306_SPLASH > 0
 	assert(device->width >= splash_bmp->width);
 	assert(device->height >= splash_bmp->height);
 
@@ -114,9 +116,10 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		height: splash_bmp->height,
 	};
 
-	ssd1306_draw_b((ssd1306_t)dev, &splash_bnd, splash_bmp);
+	ssd1306_draw_b(device, &splash_bnd, splash_bmp);
+	vTaskDelay(pdMS_TO_TICKS(CONFIG_SSD1306_SPLASH));
 #else
-	ssd1306_update(device);
+	ssd1306_update(device, NULL);
 #endif
 
 	return device;
@@ -129,6 +132,8 @@ void ssd1306_free(ssd1306_t device)
 		return;
 	}
 
+	ssd1306_priv_t const dev = (ssd1306_priv_t)device;
+
 	switch( dev->connection.type ) {
 		case ssd1306_type_i2c:
 			ssd1306_i2c_free(dev->i2c);
@@ -138,7 +143,8 @@ void ssd1306_free(ssd1306_t device)
 		break;
 	}
 
-	free(device);
+	free(dev->data)
+	free(dev);
 }
 #endif
 
@@ -156,22 +162,27 @@ void ssd1306_release(ssd1306_t device)
 	xSemaphoreGiveRecursive(dev->mutex);
 }
 
-void ssd1306_update(ssd1306_t device)
+void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 {
 	ssd1306_priv_t const dev = (ssd1306_priv_t)device;
 
-	if( dev->no_update == 0 ) {
 #if CONFIG_SSD1306_OPTIMIZE
-		ssd1306_bounds_t m = {
-			width: device->width,
-			height: device->height,
-		};
-
+	if( dev->no_update ) {
 		if( bounds ) {
-			memcpy(&m, bounds, sizeof(m));
+			ssd1306_extend_bounds(&dev->dirty_bounds, bounds);
 		}
+	} else {
+#else
+	if( dev->no_update == 0 ) {
+#endif
+#if CONFIG_SSD1306_OPTIMIZE
+		if( bounds ) {
+			xQueueSend(dev->queue, bounds, portMAX_DELAY);
+		} else {
+			const ssd1306_bounds_t m = { size: dev->size, };
 
-		xQueueSend(dev->queue, &m, portMAX_DELAY);
+			xQueueSend(dev->queue, &m, portMAX_DELAY);
+		}
 #else
 		xTaskNotifyGive(dev->task);
 #endif
@@ -184,26 +195,44 @@ void ssd1306_auto_update(ssd1306_t device, bool on)
 
 	dev->no_update += on ? -1 : +1;
 
-	ssd1306_update(device);
+#if CONFIG_SSD1306_OPTIMIZE
+	if( !on && dev->no_update == 1 ) {
+		memset(&dev->dirty_bounds, 0, sizeof(dev->dirty_bounds));
+	}
+	ssd1306_update(device, &dev->dirty_bounds);
+#else
+	ssd1306_update(device, NULL);
+#endif
 }
 
 uint8_t* ssd1306_raster(ssd1306_t device, uint8_t page)
 {
 	ssd1306_priv_t const dev = (ssd1306_priv_t)device;
 
-	return dev->data + page * device->width;
+	return dev->buff + page * device->width;
 }
 
 void ssd1306_on(ssd1306_t device, bool on) {
 	ssd1306_priv_t const dev = (ssd1306_priv_t)device;
 
-	const uint8_t data[] = {
-		OLED_CTL_BYTE_CMD_SINGLE,
-		OLED_CMD_DISPLAY_OFF | (on ? 0x01 : 0x00),
-	};
+	const uint8_t data = OLED_CMD1(DISPLAY_OFF, on);
 
 	if( ssd1306_acquire(device) ) {
-		ssd1306_send_data(dev, data, _countof(data));
+		ssd1306_send_buff(dev, OLED_CTL_BYTE_CMD_SINGLE, &data, 1);
+
+		ssd1306_release(device);
+	} else {
+		LOG_W("Couldn't take mutex");
+	}
+}
+
+void ssd1306_invert(ssd1306_t device, bool on) {
+	ssd1306_priv_t const dev = (ssd1306_priv_t)device;
+
+	const uint8_t data = OLED_CMD1(DISPLAY_NORMAL, on);
+
+	if( ssd1306_acquire(device) ) {
+		ssd1306_send_buff(dev, OLED_CTL_BYTE_CMD_SINGLE, &data, 1);
 
 		ssd1306_release(device);
 	} else {
@@ -214,14 +243,10 @@ void ssd1306_on(ssd1306_t device, bool on) {
 void ssd1306_contrast(ssd1306_t device, uint8_t contrast) {
 	ssd1306_priv_t const dev = (ssd1306_priv_t)device;
 
-	const uint8_t data[] = {
-		OLED_CTL_BYTE_CMD_STREAM,
-		OLED_CMD_SET_CONTRAST,
-		contrast
-	};
+	const uint8_t data[] = { OLED_CMD2(SET_CONTRAST, contrast) };
 
 	if( ssd1306_acquire(device) ) {
-		ssd1306_send_data(dev, data, _countof(data));
+		ssd1306_send_buff(dev, OLED_CTL_BYTE_CMD_STREAM, data, _countof(data));
 
 		ssd1306_release(device);
 	} else {
@@ -234,12 +259,8 @@ void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds)
 	ESP_RETURN_VOID_ON_FALSE(device, LOG_DOMAIN, "device is NULL");
 
 	if( bounds == NULL ) {
-		const ssd1306_bounds_t t = {
-			width: device->width, height: device->height,
-		};
-
 		ssd1306_auto_update(device, false);
-		ssd1306_clear_b(device, &t);
+		ssd1306_clear_b(device, &device->bounds);
 		ssd1306_status(device, ssd1306_status_0, NULL);
 		ssd1306_status(device, ssd1306_status_1, NULL);
 		ssd1306_auto_update(device, true);
@@ -260,7 +281,7 @@ void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 	ssd1306_clear_internal(device, bounds, &trimmed);
 
-	ssd1306_update(device);
+	ssd1306_update(device, &trimmed);
 	ssd1306_release(device);
 }
 
@@ -314,7 +335,12 @@ void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1
 {
 	ESP_RETURN_VOID_ON_FALSE(device, LOG_DOMAIN, "device is NULL");
 	ESP_RETURN_VOID_ON_FALSE(bitmap, LOG_DOMAIN, "bitmap is NULL");
-	ESP_RETURN_VOID_ON_FALSE(bounds, LOG_DOMAIN, "bounds are NULL");
+
+	if( bounds == NULL ) {
+		ssd1306_draw_b(device, &device->bounds, bitmap);
+
+		return;
+	}
 
 	ssd1306_bounds_t trimmed = *bounds;
 
@@ -329,7 +355,7 @@ void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1
 
 	ssd1306_draw_internal(device, bounds, &trimmed, bitmap);
 
-	ssd1306_update(device);
+	ssd1306_update(device, &trimmed);
 	ssd1306_release(device);
 }
 
@@ -409,7 +435,12 @@ void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bi
 {
 	ESP_RETURN_VOID_ON_FALSE(device, LOG_DOMAIN, "device is NULL");
 	ESP_RETURN_VOID_ON_FALSE(bitmap, LOG_DOMAIN, "bitmap is NULL");
-	ESP_RETURN_VOID_ON_FALSE(bounds, LOG_DOMAIN, "bounds are NULL");
+
+	if( bounds == NULL ) {
+		ssd1306_grab_b(device, &device->bounds, bitmap);
+
+		return;
+	}
 
 	ssd1306_bounds_t trimmed = *bounds;
 
@@ -424,7 +455,7 @@ void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bi
 
 	ssd1306_grab_internal(device, bounds, &trimmed, bitmap);
 
-	ssd1306_update(device);
+	ssd1306_update(device, &trimmed);
 	ssd1306_release(device);
 }
 
@@ -586,7 +617,7 @@ void ssd1306_text_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, con
 
 	free(bitmap);
 
-	ssd1306_update(device);
+	ssd1306_update(device, &trimmed);
 	ssd1306_release(device);
 }
 
@@ -669,8 +700,10 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		va_end(args);
 
 		ssd1306_bounds_t trimmed = bounds;
+
 		ssd1306_trim(device, &trimmed, &bitmap->size);
 		ssd1306_draw_internal(device, &bounds, &trimmed, bitmap);
+		ssd1306_update(device, &bounds);
 
 		if( bitmap->width > device->width ) {
 			anim->bitmap = bitmap;
@@ -683,7 +716,6 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		}
 	}
 
-	ssd1306_update(device);
 	ssd1306_release(device);
 }
 
@@ -704,36 +736,64 @@ ssd1306_status_t ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status
 void ssd1306_init_screen(ssd1306_priv_t dev)
 {
 	const uint8_t data[] = {
-		OLED_CTL_BYTE_CMD_STREAM,
+// 		OLED_CMD_DISPLAY_OFF,
+// 		OLED_CMD_SET_DISPLAY_CLK_DIV, 0x80,
+// 		OLED_CMD_SET_MUX_RATIO, dev->height-1,
+// 		OLED_CMD_SET_DISPLAY_OFFSET, 0x00,
+// 		OLED_CMD_SET_DISPLAY_START_LINE | 0x00,
+// 		OLED_CMD_SET_CHARGE_PUMP, 0x14,
 
-		OLED_CMD_DISPLAY_OFF,
-		OLED_CMD_SET_DISPLAY_CLK_DIV, 0x80,
-		OLED_CMD_SET_MUX_RATIO, dev->height-1,
-		OLED_CMD_SET_DISPLAY_OFFSET, 0x00,
-		OLED_CMD_SET_DISPLAY_START_LINE | 0x00,
-		OLED_CMD_SET_CHARGE_PUMP, 0x14,
+// #if !CONFIG_SSD1306_OPTIMIZE
+// 		OLED_CMD_SET_MEMORY_ADDR_MODE, OLED_CMD_SET_HORI_ADDR_MODE,
+// 		OLED_CMD_SET_COLUMN_RANGE, 0, dev->width-1,
+// 		OLED_CMD_SET_PAGE_RANGE, 0, dev->pages-1,
+// #endif
+
+// 		OLED_CMD_SET_SEGMENT_REMAP | (dev->flip ? 0x00 : 0x01),
+// 		OLED_CMD_SET_COM_SCAN_MODE | (dev->flip ? 0x00 : 0x08),
+
+// 		OLED_CMD_SET_COM_PIN_MAP, dev->height == 64 ? 0x12:  0x02,
+// 		OLED_CMD_SET_CONTRAST, 0x7F,
+// 		OLED_CMD_SET_PRECHARGE, 0xf1,
+// 		OLED_CMD_SET_VCOMH_DESELCT, 0x40,
+
+// 		OLED_CMD_DEACTIVE_SCROLL,
+// 		OLED_CMD_DISPLAY_NORMAL | (dev->invert ? 0x01 : 0x00),
+// 		OLED_CMD_DISPLAY_RAM,
+// 		OLED_CMD_DISPLAY_ON,
+
+		OLED_CMD0(DISPLAY_OFF),
+
+		OLED_CMD2(SET_MUX_RATIO, dev->height-1),
+		OLED_CMD1(SET_SEGMENT_REMAP, dev->flip ? 0x00 : 0x01),
+		OLED_CMD1(SET_COM_SCAN_MODE, dev->flip ? 0x00 : 0x08),
+		OLED_CMD2(SET_DISPLAY_CLK_DIV, 0x80),
+
+		OLED_CMD2(SET_COM_PIN_MAP, dev->height == 64 ? 0x12:  0x02),
+		OLED_CMD2(SET_VCOMH_DESELCT, 0x40),
+		OLED_CMD2(SET_CHARGE_PUMP, 0x14),
+		OLED_CMD2(SET_PRECHARGE, 0xf1),
+
+		OLED_CMD0(DISPLAY_RAM),
+		OLED_CMD2(SET_DISPLAY_OFFSET, 0x00),
+		OLED_CMD1(SET_DISPLAY_START_LINE, 0x00),
+
+		OLED_CMD2(SET_MEMORY_ADDR_MODE, OLED_HORI_ADDR_MODE),
 
 #if !CONFIG_SSD1306_OPTIMIZE
-		OLED_CMD_SET_MEMORY_ADDR_MODE, OLED_CMD_SET_HORI_ADDR_MODE,
-		OLED_CMD_SET_COLUMN_RANGE, 0, dev->width-1,
-		OLED_CMD_SET_PAGE_RANGE, 0, dev->pages-1,
+		OLED_CMD3(SET_COLUMN_RANGE, 0, dev->width-1),
+		OLED_CMD3(SET_PAGE_RANGE, 0, dev->pages-1),
 #endif
 
-		OLED_CMD_SET_SEGMENT_REMAP | (dev->flip ? 0x00 : 0x01),
-		OLED_CMD_SET_COM_SCAN_MODE | (dev->flip ? 0x00 : 0x08),
+		OLED_CMD0(DEACTIVE_SCROLL),
+		OLED_CMD2(SET_CONTRAST, CONFIG_SSD1306_CONTRAST),
+		OLED_CMD1(DISPLAY_NORMAL, dev->invert ? 0x01 : 0x00),
 
-		OLED_CMD_SET_COM_PIN_MAP, dev->height == 64 ? 0x12:  0x02,
-		OLED_CMD_SET_CONTRAST, 0x7F,
-		OLED_CMD_SET_PRECHARGE, 0xf1,
-		OLED_CMD_SET_VCOMH_DESELCT, 0x40,
+		OLED_CMD0(DISPLAY_ON),
 
-		OLED_CMD_DEACTIVE_SCROLL,
-		OLED_CMD_DISPLAY_NORMAL | (dev->invert ? 0x01 : 0x00),
-		OLED_CMD_DISPLAY_RAM,
-		OLED_CMD_DISPLAY_ON,
 	};
 
-	ssd1306_send_data(dev, data, _countof(data));
+	ssd1306_send_buff(dev, OLED_CTL_BYTE_CMD_STREAM, data, _countof(data));
 }
 
 bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size)

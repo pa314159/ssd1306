@@ -33,27 +33,20 @@ typedef struct ssd1306_priv_s {
 
 #if CONFIG_SSD1306_OPTIMIZE
 	QueueHandle_t queue;
+	ssd1306_bounds_t dirty_bounds;
 #else
 	TaskHandle_t task;
 #endif
-
 	SemaphoreHandle_t mutex;
 
 	status_info_t statuses[2];
 
-	uint8_t head[1];
-	uint8_t data[];
+	uint8_t buff[];
 } ssd1306_priv_s;
 
-#if CONFIG_SSD1306_OPTIMIZE
-typedef struct {
-	const uint8_t* buffer;
-	ssd1306_bounds_t bounds;
-} ssd1306_message_t;
-#endif
-
 void ssd1306_task(ssd1306_priv_t dev);
-void ssd1306_send_data(ssd1306_priv_t dev, const uint8_t* data, size_t size);
+void ssd1306_send_buff(ssd1306_priv_t dev, uint8_t ctl, const uint8_t* buff, uint16_t size);
+void ssd1306_extend_bounds(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 
 inline uint16_t minu(uint16_t a, uint16_t b)
 {

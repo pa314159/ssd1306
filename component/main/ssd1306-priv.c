@@ -6,10 +6,11 @@
 
 #include <esp_timer.h>
 
-#define SCREEN_SCROLL_FPS   30
+#define SCREEN_SCROLL_FPS   25
 #define SCREEN_SCROLL_TICKS pdMS_TO_TICKS(1000/SCREEN_SCROLL_FPS)
 
-static void update_display(ssd1306_priv_t dev);
+static void update_region(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds);
+
 static const status_info_t* update_status(ssd1306_priv_t dev, uint8_t index);
 static void move_status(ssd1306_priv_t dev, status_info_t* status);
 
@@ -17,8 +18,6 @@ inline bool is_move(const status_info_t* status)
 {
 	return status && status->state == anim_move;
 }
-
-static void ssd1306_send(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds);
 
 void ssd1306_task(ssd1306_priv_t dev)
 {
@@ -29,21 +28,13 @@ void ssd1306_task(ssd1306_priv_t dev)
 	TickType_t delay = portMAX_DELAY;
 
 	while( dev->active ) {
+		ssd1306_bounds_t bounds = {};
+
 #if CONFIG_SSD1306_OPTIMIZE
-		ssd1306_bounds_t bounds;
-
-		if( xQueueReceive(dev->queue, &bounds, portMAX_DELAY) == pdFALSE ) {
-			continue;
-		}
-
-		if( xSemaphoreTake(dev->mutex, portMAX_DELAY) ) {
-			ssd1306_send(device, &bounds);
-
-			xSemaphoreGive(dev->mutex);
-		}
+		bool notified = xQueueReceive(dev->queue, &bounds, delay);
 #else
 		bool notified = ulTaskNotifyTake(pdTRUE, delay);
-
+#endif
 		if( xSemaphoreTake(dev->mutex, portMAX_DELAY) ) {
 			const status_info_t* s0 = update_status(dev, 0);
 			const status_info_t* s1 = update_status(dev, 1);
@@ -51,23 +42,43 @@ void ssd1306_task(ssd1306_priv_t dev)
 			delay = (s0 || s1) ? SCREEN_SCROLL_TICKS : portMAX_DELAY;
 
 			if( notified || is_move(s0) || is_move(s1) ) {
-				update_display(dev);
+				update_region(dev, &bounds);
 			}
 
 			xSemaphoreGive(dev->mutex);
 		}
-#endif
 	}
 }
 
-void update_display(ssd1306_priv_t dev)
+void update_region(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds)
 {
-	const ssd1306_bounds_t bounds = {
-		width: dev->width,
-		height: dev->height,
+	const uint64_t start = esp_timer_get_time();
+
+#if CONFIG_SSD1306_OPTIMIZE
+ 	const int16_t x0 = bounds->x;
+	const int16_t x1 = bounds->x + bounds->width;
+	const uint16_t p0 = bounds->y / 8;
+	const uint16_t p1 = (bounds->y + bounds->height) / 8;
+
+	LOG_D("x0 = %d, x1 = %d, p0 = %u, p1 = %u", x0, x1, p0, p1);
+
+	const uint8_t data[] = {
+		OLED_CMD_SET_COLUMN_RANGE, x0, x1 - 1,
+		OLED_CMD_SET_PAGE_RANGE, p0, p1 - 1,
 	};
 
-	ssd1306_send(dev, &bounds);
+	ssd1306_send_buff(dev, OLED_CTL_BYTE_CMD_STREAM, data, _countof(data));
+
+	for( uint16_t p = p0; p < p1; p++ ) {
+		const uint8_t* buff = ssd1306_raster((ssd1306_t)dev, p);
+
+		ssd1306_send_buff(dev, OLED_CTL_BYTE_DATA_STREAM, buff + x0, x1 - x0);
+	}
+#else
+	ssd1306_send_buff(dev, OLED_CTL_BYTE_DATA_STREAM, dev->buff, dev->width * dev->pages);
+#endif
+
+	LOG_D("ended after %u \u03BCs", esp_timer_get_time()-start);
 }
 
 const status_info_t* update_status(ssd1306_priv_t dev, uint8_t index)
@@ -142,42 +153,51 @@ void move_status(ssd1306_priv_t dev, status_info_t* status)
 	}
 }
 
-void ssd1306_send_data(ssd1306_priv_t dev, const uint8_t* data, size_t size)
+void ssd1306_send_buff(ssd1306_priv_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
 	LOG_V("data = %p, size = %u", data, size);
 
 	switch( dev->connection.type ) {
 		case ssd1306_type_i2c:
-			ssd1306_i2c_send(dev->i2c, data, size);
+			ssd1306_i2c_send(dev->i2c, ctl, data, size);
 		break;
 		case ssd1306_type_spi:
-			ssd1306_spi_send(dev->spi, data, size);
+			ssd1306_spi_send(dev->spi, ctl, data, size);
 		break;
+
+		default:
+			LOG_E("Unkown connection type %u", dev->connection.type);
+			abort();
 	}
 }
 
-void ssd1306_send(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds)
+void ssd1306_extend_bounds(ssd1306_bounds_t* target, const ssd1306_bounds_t* source)
 {
-	const uint64_t start = esp_timer_get_time();
+	if( target->width == 0 && target->height == 0 ) {
+		*target = *source;
+	} else {
+		const ssd1306_point_t t0 = target->origin;
+		const ssd1306_point_t t1 = {
+			x: target->x + target->width,
+			y: target->y + target->height,
+		};
+		const ssd1306_point_t s0 = source->origin;
+		const ssd1306_point_t s1 = {
+			x: source->x + source->width,
+			y: source->y + source->height,
+		};
 
-#if CONFIG_SSD1306_OPTIMIZE
-	int x0 = bounds->x;
-	int y0 = bounds->y;
-	int x1 = bounds->x + bounds->width;
-	int y1 = bounds->y + bounds->height;
-
-	const uint8_t data[] = {
-		OLED_CTL_BYTE_CMD_STREAM,
-		OLED_CMD_SET_COLUMN_RANGE, x0, x1 - 1,
-		OLED_CMD_SET_PAGE_RANGE, y0 / 8, y1 / 8 - 1,
-	};
-
-	ssd1306_dump(data, _countof(data), "");
-
-	ssd1306_send_data(dev, data, _countof(data));
-#endif
-
-	ssd1306_send_data(dev, dev->head, dev->width * dev->pages + 1);
-
-	LOG_V("ended after %u \u03BCs", esp_timer_get_time()-start);
+		if( s0.x < t0.x ) {
+			target->x = s0.x;
+		}
+		if( s1.x > t1.x ) {
+			target->width = s1.x - t0.x;
+		}
+		if( s0.y < t0.y ) {
+			target->y = s0.y;
+		}
+		if( s1.y > t1.y ) {
+			target->height = s1.y - t0.y;
+		}
+	}
 }
