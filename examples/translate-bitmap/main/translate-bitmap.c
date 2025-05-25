@@ -76,8 +76,7 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 
 void app_main(void)
 {
-	ssd1306_init_t init = ssd1306_create_init();
-	ssd1306_t device = ssd1306_init(init);
+	ssd1306_t device = ssd1306_init(ssd1306_create_init());
 
 	vTaskDelay(pdMS_TO_TICKS(2000));
 	translate_bitmap(device, splash_bmp);

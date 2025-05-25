@@ -9,9 +9,9 @@
 #define OLED_I2C_ADDRESS                0x3C
 
 // Control byte
-#define OLED_CTL_BYTE_CMD_SINGLE        0x80
-#define OLED_CTL_BYTE_CMD_STREAM        0x00
-#define OLED_CTL_BYTE_DATA_STREAM       0x40
+// #define OLED_CTL_BYTE_CMD_SINGLE        0x80
+#define OLED_CTL_COMMAND                0x00
+#define OLED_CTL_DATA                   0x40
 
 // Fundamental commands (pg.28)
 #define OLED_CMD_SET_CONTRAST           0x81

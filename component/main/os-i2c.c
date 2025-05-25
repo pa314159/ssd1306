@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 #include <ssd1306.h>
 
-#include "os.h"
+#include "ssd1306-int.h"
 
 #include <driver/gpio.h>
 #include <driver/i2c_master.h>
@@ -16,16 +16,14 @@ static const ssd1306_init_s init_default = {
 #if CONFIG_SSD1306_INVERT
 	invert: true,
 #endif
+	free: true,
+
+	contrast: CONFIG_SSD1306_CONTRAST,
 
 	width: CONFIG_SSD1306_WIDTH,
 	height: CONFIG_SSD1306_HEIGHT,
 
 	font: ssd1306_default_font,
-
-	text_invert: {
-		off: 0x0e,
-		on: 0x0f,
-	},
 
 	connection: {
 		type: ssd1306_type_i2c,
@@ -42,7 +40,9 @@ static const ssd1306_init_s init_default = {
 
 ssd1306_init_t ssd1306_create_init()
 {
-	ssd1306_init_t init = calloc(1, sizeof(ssd1306_init_s));
+	ssd1306_init_t init = malloc(sizeof(ssd1306_init_s));
+
+	ABORT_IF(init == NULL, "cannot allocate memory for ssd1306_init_t");
 
 	memcpy(init, &init_default, sizeof(ssd1306_init_s));
 
@@ -53,8 +53,6 @@ ssd1306_init_t ssd1306_create_init()
 #endif
 
 struct ssd1306_i2c_s {
-	struct ssd1306_init_s;
-
 	i2c_master_bus_handle_t bus_handle;
 	i2c_master_dev_handle_t dev_handle;
 };
@@ -72,7 +70,7 @@ struct ssd1306_i2c_s {
 
 ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 {
-	// esp_log_level_set("i2c.master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
+	esp_log_level_set("i2c.master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
 
 	LOG_I("SCL PIN: %d", init->connection.scl);
 	LOG_I("SDA PIN: %d", init->connection.sda);
@@ -97,9 +95,9 @@ ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 	};
 	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "I2C dev config");
 
-	ssd1306_i2c_t i2c = calloc(1, sizeof(struct ssd1306_i2c_s));
+	ssd1306_i2c_t i2c = malloc(sizeof(struct ssd1306_i2c_s));
 
-	memcpy(i2c, init, sizeof(ssd1306_init_s));
+	ABORT_IF(i2c == NULL, "cannot allocate memory for ssd1306_i2c_t");
 
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &i2c->bus_handle));
 	ESP_ERROR_CHECK(i2c_master_bus_add_device(i2c->bus_handle, &dev_cfg, &i2c->dev_handle));
@@ -122,7 +120,7 @@ void ssd1306_i2c_free(ssd1306_i2c_t i2c)
 }
 #endif
 
-void ssd1306_i2c_send(ssd1306_i2c_t device, uint8_t ctl, const uint8_t* data, uint16_t size)
+void ssd1306_i2c_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
 	uint8_t* temp = malloc(size+1);
 
@@ -132,7 +130,7 @@ void ssd1306_i2c_send(ssd1306_i2c_t device, uint8_t ctl, const uint8_t* data, ui
 
 	ssd1306_dump(temp, size + 1, "I2C buffer size = %u", size + 1);
 
-	ESP_ERROR_CHECK(i2c_master_transmit(device->dev_handle, temp, size + 1, SSD1306_I2C_TIMEOUT));
+	ESP_ERROR_CHECK(i2c_master_transmit(dev->i2c->dev_handle, temp, size + 1, SSD1306_I2C_TIMEOUT));
 
 	free(temp);
 }

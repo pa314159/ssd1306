@@ -29,18 +29,18 @@ typedef struct PACKED ssd1306_size_t {
 typedef struct PACKED ssd1306_bounds_t {
 	union {
 		struct ssd1306_point_t;
-		struct ssd1306_point_t origin;
+		ssd1306_point_t origin;
 	};
 	union {
 		struct ssd1306_size_t;
-		struct ssd1306_size_t size;
+		ssd1306_size_t size;
 	};
 } ssd1306_bounds_t;
 
 typedef struct PACKED ssd1306_bitmap_t {
-	const union {
+	union {
 		struct ssd1306_size_t;
-		struct ssd1306_size_t size;
+		ssd1306_size_t size;
 	};
 	uint8_t image[];
 } ssd1306_bitmap_t;
@@ -52,61 +52,78 @@ typedef struct PACKED ssd1306_glyph_t {
 	union {
 		uint8_t h, height;
 	};
-	const uint8_t image[8];
+	uint8_t image[8];
 } ssd1306_glyph_t;
 
+typedef enum {
+		ssd1306_type_i2c, ssd1306_type_spi
+} ssd1306_connection_type_t;
+
+typedef struct PACKED ssd1306_connection_t {
+	ssd1306_connection_type_t type;
+
+	int16_t rst;
+
+	union {
+		struct PACKED {
+			int16_t sda;
+			int16_t scl;
+
+			uint16_t port;
+			uint8_t address;
+		};
+		struct PACKED {
+			int16_t mosi;
+			int16_t sclk;
+			int16_t cs;
+			int16_t dc;
+
+			uint16_t host;
+		};
+	};
+
+	uint16_t freq;
+} ssd1306_connection_t;
+
 typedef struct PACKED ssd1306_init_s {
+	uint8_t id;
+
 	struct PACKED {
 		bool flip;
 		bool invert;
+		bool free; // structure to be freed by ssd1306_init
+	};
+
+	uint8_t contrast;
+
+	const union {
+		struct ssd1306_size_t;
+		struct ssd1306_size_t size;
+	};
+
+	const ssd1306_glyph_t* const font;
+
+	ssd1306_connection_t connection;
+} ssd1306_init_s;
+typedef ssd1306_init_s* ssd1306_init_t;
+
+typedef struct PACKED ssd1306_s {
+	uint8_t id;
+
+	struct PACKED {
+		bool flip;
 	};
 
 	union {
 		struct ssd1306_bounds_t;
-		struct ssd1306_bounds_t bounds;
+		ssd1306_bounds_t bounds;
 	};
 
+	uint8_t pages;
+
 	const ssd1306_glyph_t* font;
-
-	struct {
-		char off, on;
-	} text_invert;
-
-	struct PACKED {
-		enum {
-			ssd1306_type_i2c, ssd1306_type_spi
-		} type;
-
-		int16_t rst;
-
-		union {
-			struct PACKED {
-				int16_t sda;
-				int16_t scl;
-
-				uint16_t port;
-				uint8_t address;
-			};
-			struct PACKED {
-				int16_t mosi;
-				int16_t sclk;
-				int16_t cs;
-				int16_t dc;
-
-				uint16_t host;
-			};
-		};
-
-		uint16_t freq;
-	} connection;
-} ssd1306_init_s;
-typedef struct ssd1306_init_s* ssd1306_init_t;
-
-typedef struct ssd1306_s {
-	const struct ssd1306_init_s;
-	const unsigned pages;
 } ssd1306_s;
-typedef struct ssd1306_s* ssd1306_t;
+typedef const ssd1306_s* ssd1306_t;
 
 #undef __SSD1306_FREE
 
@@ -114,7 +131,7 @@ extern const ssd1306_bitmap_t* splash_bmp;
 
 // initialisation
 ssd1306_init_t ssd1306_create_init(); // returned pointer can be freed after initialisation
-ssd1306_t      ssd1306_init(ssd1306_init_t init);
+ssd1306_t      ssd1306_init(ssd1306_init_t init); // pass NULL to use the default configuration
 
 #if __SSD1306_FREE
 void           ssd1306_free(ssd1306_t device);

@@ -12,8 +12,7 @@ void app_main(void)
 {
 	TickType_t ticks = xTaskGetTickCount();
 
-	ssd1306_init_t init = ssd1306_create_init();
-	ssd1306_t device = ssd1306_init(init);
+	ssd1306_t device = ssd1306_init(ssd1306_create_init());
 
 	char* status0 = "the brown fox jumps over the lazy dog";
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));

@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 #include <ssd1306.h>
 
-#include "os.h"
+#include "ssd1306-int.h"
 #include "ssd1306-defs.h"
 
 #include <driver/gpio.h>
@@ -15,6 +15,9 @@ static const ssd1306_init_s init_default = {
 #if CONFIG_SSD1306_INVERT
 	invert: true,
 #endif
+	free: true,
+
+	contrast: CONFIG_SSD1306_CONTRAST,
 
 	width: CONFIG_SSD1306_WIDTH,
 	height: CONFIG_SSD1306_HEIGHT,
@@ -37,7 +40,9 @@ static const ssd1306_init_s init_default = {
 
 ssd1306_init_t ssd1306_create_init()
 {
-	ssd1306_init_t init = calloc(1, sizeof(init_default));
+	ssd1306_init_t init = malloc(sizeof(init_default));
+
+	ABORT_IF(init == NULL, "cannot allocate memory for ssd1306_init_t");
 
 	memcpy(init, &init_default, sizeof(init_default));
 
@@ -48,7 +53,6 @@ ssd1306_init_t ssd1306_create_init()
 #endif
 
 struct ssd1306_spi_s {
-	struct ssd1306_init_s;
 	spi_device_handle_t handle;
 	spi_transaction_t transaction;
 };
@@ -93,9 +97,9 @@ ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init)
 	};
 	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "SPI dev config");
 
-	ssd1306_spi_t spi = calloc(1, sizeof(struct ssd1306_spi_s));
+	ssd1306_spi_t spi = malloc(sizeof(struct ssd1306_spi_s));
 
-	memcpy(spi, init, sizeof(ssd1306_init_s));
+	ABORT_IF(spi == NULL, "cannot allocate memory for ssd1306_spi_t");
 
 	ESP_ERROR_CHECK(spi_bus_initialize(init->connection.host, &bus_cfg, SPI_DMA_CH_AUTO));
 	ESP_ERROR_CHECK(spi_bus_add_device(init->connection.host, &dev_cfg, &spi->handle));
@@ -121,24 +125,23 @@ void ssd1306_spi_free(ssd1306_spi_t spi)
 #define SPI_COMM_MODE 0
 #define SPI_DATA_MODE 1
 
-void ssd1306_spi_send(ssd1306_spi_t device, uint8_t ctl, const uint8_t* data, uint16_t size)
+void ssd1306_spi_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
 	switch( ctl ) {
-		case OLED_CTL_BYTE_DATA_STREAM: 
+		case OLED_CTL_DATA: 
 			ssd1306_dump(data, size, "SPI buffer type = %u, size = %u, SPI_DATA_MODE", ctl, size);
 
-			gpio_set_level(device->connection.cs, SPI_DATA_MODE);
-			LOG_V("gpio %d set to %d", device->connection.cs, SPI_DATA_MODE);
+			gpio_set_level(dev->connection.cs, SPI_DATA_MODE);
 
+			LOG_V("gpio %d set to %d", dev->connection.cs, SPI_DATA_MODE);
 			break;
 
-		case OLED_CTL_BYTE_CMD_SINGLE:
-		case OLED_CTL_BYTE_CMD_STREAM:
+		case OLED_CTL_COMMAND:
 			ssd1306_dump(data, size, "SPI buffer type = %u, size = %u, SPI_COMM_MODE", ctl, size);
 
-			gpio_set_level(device->connection.cs, SPI_COMM_MODE);
+			gpio_set_level(dev->connection.cs, SPI_COMM_MODE);
 
-			LOG_V("gpio %d set to %d", device->connection.cs, SPI_COMM_MODE);
+			LOG_V("gpio %d set to %d", dev->connection.cs, SPI_COMM_MODE);
 			break;
 
 		default: {
@@ -152,5 +155,5 @@ void ssd1306_spi_send(ssd1306_spi_t device, uint8_t ctl, const uint8_t* data, ui
 		tx_buffer: data,
 	};
 
-	ESP_ERROR_CHECK(spi_device_transmit(device->handle, &tx));
+	ESP_ERROR_CHECK(spi_device_transmit(dev->spi->handle, &tx));
 }

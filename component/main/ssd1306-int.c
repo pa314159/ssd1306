@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 #include <ssd1306.h>
 
-#include "ssd1306-priv.h"
+#include "ssd1306-int.h"
 #include "ssd1306-defs.h"
 
 #include <esp_timer.h>
@@ -9,17 +9,17 @@
 #define SCREEN_SCROLL_FPS   25
 #define SCREEN_SCROLL_TICKS pdMS_TO_TICKS(1000/SCREEN_SCROLL_FPS)
 
-static void update_region(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds);
+static void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds);
 
-static const status_info_t* update_status(ssd1306_priv_t dev, uint8_t index);
-static void move_status(ssd1306_priv_t dev, status_info_t* status);
+static const status_info_t* update_status(ssd1306_int_t dev, uint8_t index);
+static void move_status(ssd1306_int_t dev, status_info_t* status);
 
 inline bool is_move(const status_info_t* status)
 {
 	return status && status->state == anim_move;
 }
 
-void ssd1306_task(ssd1306_priv_t dev)
+void ssd1306_task(ssd1306_int_t dev)
 {
 	LOG_I("Starting task %s, sizeof(int) = %d", pcTaskGetName(xTaskGetCurrentTaskHandle()), sizeof(int));
 
@@ -50,7 +50,7 @@ void ssd1306_task(ssd1306_priv_t dev)
 	}
 }
 
-void update_region(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds)
+void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 {
 	const uint64_t start = esp_timer_get_time();
 
@@ -67,21 +67,21 @@ void update_region(ssd1306_priv_t dev, const ssd1306_bounds_t* bounds)
 		OLED_CMD_SET_PAGE_RANGE, p0, p1 - 1,
 	};
 
-	ssd1306_send_buff(dev, OLED_CTL_BYTE_CMD_STREAM, data, _countof(data));
+	ssd1306_send_buff(dev, OLED_CTL_COMMAND, data, _countof(data));
 
 	for( uint16_t p = p0; p < p1; p++ ) {
 		const uint8_t* buff = ssd1306_raster((ssd1306_t)dev, p);
 
-		ssd1306_send_buff(dev, OLED_CTL_BYTE_DATA_STREAM, buff + x0, x1 - x0);
+		ssd1306_send_buff(dev, OLED_CTL_DATA, buff + x0, x1 - x0);
 	}
 #else
-	ssd1306_send_buff(dev, OLED_CTL_BYTE_DATA_STREAM, dev->buff, dev->width * dev->pages);
+	ssd1306_send_buff(dev, OLED_CTL_DATA, dev->buff, dev->width * dev->pages);
 #endif
 
 	LOG_D("ended after %u \u03BCs", esp_timer_get_time()-start);
 }
 
-const status_info_t* update_status(ssd1306_priv_t dev, uint8_t index)
+const status_info_t* update_status(ssd1306_int_t dev, uint8_t index)
 {
 	status_info_t* status = dev->statuses + index;
 
@@ -128,7 +128,7 @@ const status_info_t* update_status(ssd1306_priv_t dev, uint8_t index)
 	return status;
 }
 
-void move_status(ssd1306_priv_t dev, status_info_t* status)
+void move_status(ssd1306_int_t dev, status_info_t* status)
 {
 	int16_t offset = --status->offset;
 
@@ -153,16 +153,16 @@ void move_status(ssd1306_priv_t dev, status_info_t* status)
 	}
 }
 
-void ssd1306_send_buff(ssd1306_priv_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
+void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
 	LOG_V("data = %p, size = %u", data, size);
 
 	switch( dev->connection.type ) {
 		case ssd1306_type_i2c:
-			ssd1306_i2c_send(dev->i2c, ctl, data, size);
+			ssd1306_i2c_send(dev, ctl, data, size);
 		break;
 		case ssd1306_type_spi:
-			ssd1306_spi_send(dev->spi, ctl, data, size);
+			ssd1306_spi_send(dev, ctl, data, size);
 		break;
 
 		default:

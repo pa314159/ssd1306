@@ -61,7 +61,6 @@ void scroll_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 	}
-	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(2500));
 
 	bounds.x = posX;
 	bounds.y = 0;
@@ -91,12 +90,11 @@ void scroll_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 
 void app_main(void)
 {
-	ssd1306_init_t init = ssd1306_create_init();
-	ssd1306_t device = ssd1306_init(init);
+	ssd1306_t device = ssd1306_init(NULL);
 
 	vTaskDelay(pdMS_TO_TICKS(1000));
 	scroll_bitmap(device, &ugly_bitmap);
 
-	vTaskDelay(pdMS_TO_TICKS(1000));
+	vTaskDelay(pdMS_TO_TICKS(15000));
 	esp_restart();
 }

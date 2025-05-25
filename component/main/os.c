@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 #include <ssd1306.h>
 
-#include "os.h"
+#include "ssd1306-int.h"
 
 #include <esp_log_color.h>
 

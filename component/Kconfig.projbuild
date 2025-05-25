@@ -87,6 +87,13 @@ menu "SSD1306 Configuration"
         help
             Embedded font name.
 
+    config SSD1306_TEXT_INVERT
+        int "Character code to switch colors"
+        default 7
+        range 1 31
+        help
+            Swap foreground and background colors.
+
     config SSD1306_SPLASH
         int "Splash screen duration"
         default 2500

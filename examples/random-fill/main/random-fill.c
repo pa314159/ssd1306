@@ -75,8 +75,11 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 void app_main(void)
 {
 	TickType_t ticks = xTaskGetTickCount();
-
 	ssd1306_init_t init = ssd1306_create_init();
+
+	init->flip = true;
+	init->contrast = 0x1f;
+
 	ssd1306_t device = ssd1306_init(init);
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
@@ -90,9 +93,10 @@ void app_main(void)
 	shrink_black_rectangle(device, &ticks);
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
-	for( int16_t ct = 255; ct > 0; ct -= 4 ) {
+
+	for( int16_t ct = 0xff; ct >= 0; ct-- ) {
 		ssd1306_contrast(device, ct);
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(100));
+		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(50));
 	}
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
@@ -108,6 +112,6 @@ void app_main(void)
 		ssd1306_invert(device, !(k & 1));
 	}
 
-	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(30000));
+	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(15000));
 	esp_restart();
 }
