@@ -7,14 +7,6 @@
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 
-#if CONFIG_SSD1306_SPI_PIN_MATCH
-#define CONFIG_SSD1306_SPI_RST_PIN    5
-#define CONFIG_SSD1306_SPI_MOSI_PIN  18
-#define CONFIG_SSD1306_SPI_SCLK_PIN  19
-#define CONFIG_SSD1306_SPI_CS_PIN    16
-#define CONFIG_SSD1306_SPI_DC_PIN    17
-#endif
-
 #if CONFIG_SSD1306_SPI
 static const ssd1306_init_s init_default = {
 #if CONFIG_SSD1306_FLIP

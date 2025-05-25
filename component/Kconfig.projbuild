@@ -202,12 +202,12 @@ menu "SSD1306 Configuration"
                 - D0 / SCLK -> GPIO19
                 - D1 / MOSI -> GPIO18
                 - RST       -> GPIO5
-                - DS        -> GPIO17
+                - DC        -> GPIO17
                 - CS        -> GPIO16
 
         default n
 
-    config SSD1306_SPI_RST_PIN
+    config SSD1306_SPI_RST_GPIO
         depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "RESET GPIO number"
         range -1 GPIO_RANGE_MAX
@@ -217,7 +217,13 @@ menu "SSD1306 Configuration"
         help
             GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-    config SSD1306_SPI_MOSI_PIN
+    config SSD1306_SPI_RST_PIN
+        depends on SSD1306_SPI
+        int
+        default 5 if SSD1306_SPI_PIN_MATCH
+        default SSD1306_SPI_RST_GPIO if !SSD1306_SPI_PIN_MATCH
+
+    config SSD1306_SPI_MOSI_GPIO
         depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "D1 / MOSI GPIO number"
         range 0 GPIO_RANGE_MAX
@@ -227,7 +233,13 @@ menu "SSD1306 Configuration"
         help
             GPIO number (IOxx) to SPI MOSI.
 
-    config SSD1306_SPI_SCLK_PIN
+    config SSD1306_SPI_MOSI_PIN
+        depends on SSD1306_SPI
+        int
+        default 18 if SSD1306_SPI_PIN_MATCH
+        default SSD1306_SPI_MOSI_GPIO if !SSD1306_SPI_PIN_MATCH
+
+    config SSD1306_SPI_SCLK_GPIO
         depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "D0 / SCLK GPIO number"
         range 0 GPIO_RANGE_MAX
@@ -237,7 +249,13 @@ menu "SSD1306 Configuration"
         help
             GPIO number (IOxx) to SPI SCLK.
 
-    config SSD1306_SPI_CS_PIN
+    config SSD1306_SPI_SCLK_PIN
+        depends on SSD1306_SPI
+        int
+        default 19 if SSD1306_SPI_PIN_MATCH
+        default SSD1306_SPI_SCLK_GPIO if !SSD1306_SPI_PIN_MATCH
+
+    config SSD1306_SPI_CS_GPIO
         depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "CS GPIO number"
 		default  5 if IDF_TARGET_ESP32
@@ -246,7 +264,13 @@ menu "SSD1306 Configuration"
         help
             GPIO number (IOxx) to SPI CS.
 
-    config SSD1306_SPI_DC_PIN
+    config SSD1306_SPI_CS_PIN
+        depends on SSD1306_SPI
+        int
+        default 16 if SSD1306_SPI_PIN_MATCH
+        default SSD1306_SPI_CS_GPIO if !SSD1306_SPI_PIN_MATCH
+
+    config SSD1306_SPI_DC_GPIO
         depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
         int "DC GPIO number"
         range 0 GPIO_RANGE_MAX
@@ -255,6 +279,12 @@ menu "SSD1306 Configuration"
 		default  3 # C3 and others
         help
             GPIO number (IOxx) to SPI DC.
+
+    config SSD1306_SPI_DC_PIN
+        depends on SSD1306_SPI
+        int
+        default 17 if SSD1306_SPI_PIN_MATCH
+        default SSD1306_SPI_DC_GPIO if !SSD1306_SPI_PIN_MATCH
 
     config SSD1306_SPI_HOST
         depends on SSD1306_SPI
