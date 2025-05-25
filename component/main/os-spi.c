@@ -7,7 +7,6 @@
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 
-#if CONFIG_SSD1306_SPI
 static const ssd1306_init_s init_default = {
 #if CONFIG_SSD1306_FLIP
 	flip: true,
@@ -25,7 +24,7 @@ static const ssd1306_init_s init_default = {
 	font: ssd1306_default_font,
 
 	connection: {
-		type: ssd1306_type_spi,
+		type: ssd1306_interface_spi,
 		freq: CONFIG_SSD1306_SPI_FREQ,
 
 		rst: CONFIG_SSD1306_SPI_RST_PIN,
@@ -38,7 +37,7 @@ static const ssd1306_init_s init_default = {
 	},
 };
 
-ssd1306_init_t ssd1306_create_init()
+ssd1306_init_t ssd1306_spi_create_init()
 {
 	ssd1306_init_t init = malloc(sizeof(init_default));
 
@@ -50,7 +49,6 @@ ssd1306_init_t ssd1306_create_init()
 
 	return init;
 }
-#endif
 
 struct ssd1306_spi_s {
 	spi_device_handle_t handle;

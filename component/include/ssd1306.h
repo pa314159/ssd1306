@@ -57,11 +57,13 @@ typedef struct PACKED ssd1306_glyph_t {
 } ssd1306_glyph_t;
 
 typedef enum {
-		ssd1306_type_i2c, ssd1306_type_spi
-} ssd1306_connection_type_t;
+	ssd1306_interface_any,
+	ssd1306_interface_iic,
+	ssd1306_interface_spi,
+} ssd1306_interface_t;
 
 typedef struct PACKED ssd1306_connection_t {
-	ssd1306_connection_type_t type;
+	const ssd1306_interface_t type;
 
 	int16_t rst;
 
@@ -136,7 +138,7 @@ typedef const ssd1306_s* ssd1306_t;
 extern const ssd1306_bitmap_t* splash_bmp;
 
 // initialisation
-ssd1306_init_t ssd1306_create_init(); // returned pointer can be freed after initialisation
+ssd1306_init_t ssd1306_create_init(ssd1306_interface_t type); // returned pointer can be freed after initialisation
 ssd1306_t      ssd1306_init(ssd1306_init_t init); // pass NULL to use the default configuration
 
 #if __SSD1306_FREE
@@ -162,7 +164,7 @@ ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...)
 uint16_t ssd1306_text_width(ssd1306_t device, const char* text);
 
 // geometry
-bool ssd1306_bounds_empty(const ssd1306_bounds_t* source);
+// bool ssd1306_bounds_empty(const ssd1306_bounds_t* source);
 void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 

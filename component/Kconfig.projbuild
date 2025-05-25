@@ -119,193 +119,187 @@ menu "SSD1306 Configuration"
         help
             Update only changed area.
                         
-    choice SSD1306_INTERFACE
+    choice
         prompt "Default Interface"
-        default SSD1306_I2C
+        default SSD1306_IIC
         help
             Select the default interface to be returned by ssd1306_create_init.
-        config SSD1306_I2C
-            bool "I2C Interface"
+        config SSD1306_IIC
+            bool "IIC Interface"
             help
-                I2C Interface.
+                IIC Interface.
         config SSD1306_SPI
             bool "SPI Interface"
             help
                 SPI Interface.
     endchoice
 
-    config SSD1306_I2C_RST_PIN
-        depends on SSD1306_I2C
-        int "RESET GPIO number"
-        range -1 GPIO_RANGE_MAX
-        default -1
-        help
-            GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
-
-    config SSD1306_I2C_SCL_PIN
-        depends on SSD1306_I2C
-        int "SCL GPIO number"
-        range 0 GPIO_RANGE_MAX
-		default 22 if IDF_TARGET_ESP32
-		default  2 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
-		default  6 # C3 and others
-        help
-            GPIO number (IOxx) to I2C SCL.
-            Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used to I2C.
-            GPIOs 35-39 are input-only so cannot be used as outputs.
-
-    config SSD1306_I2C_SDA_PIN
-        depends on SSD1306_I2C
-        int "SDA GPIO number"
-        range 0 GPIO_RANGE_MAX
-		default 21 if IDF_TARGET_ESP32
-		default  1 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
-		default  5 # C3 and others
-        help
-            GPIO number (IOxx) to I2C SDA.
-
-    config SSD1306_I2C_PORT
-        depends on SSD1306_I2C
-        int "I2C port that controls this bus"
-        range 0 1
-        default 0
-        help
-            Select I2C port that controls this bus.
-
-    config SSD1306_I2C_FREQ
-        depends on SSD1306_I2C
-        int "I2C frequency (kHz)"
-        default 400
-        help
-            Select I2C SCL line frequency in kHz.
-            Defaults to 400 kHz, a known 'safe' value for most
-            microcontrollers, and meets the SSD1306 datasheet spec.
-            Some systems can operate I2C faster (800 kHz for ESP32, 1 MHz
-            for many other 32-bit MCUs).
-
-    choice
-        depends on SSD1306_I2C
-        prompt "I2C address"
-        default SSD1306_I2C_ADDRESS_3C
-
-        config SSD1306_I2C_ADDRESS_3C
-            bool "0x3C"
-        config SSD1306_I2C_ADDRESS_3D
-            bool "0x3D"
-    endchoice
-
-    config SSD1306_I2C_ADDRESS
+    config SSD1306_INTERFACE
         int
-        default 60 if SSD1306_I2C_ADDRESS_3C
-        default 61 if SSD1306_I2C_ADDRESS_3D
+        default 1 if SSD1306_IIC
+        default 2 if SSD1306_SPI
 
-    config SSD1306_SPI_PIN_MATCH
-        depends on SSD1306_SPI
-        bool "Pins match connector order"
-        help
-            Custom PIN assignment matching the order of the SSD1306 connector pins.
+    menu "IIC defaults"
+        config SSD1306_IIC_RST_PIN
+            int "RESET GPIO number"
+            range -1 GPIO_RANGE_MAX
+            default -1
+            help
+                GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-            Pins are assigned starting with GPIO19 (pin 38) as follows:
-                - D0 / SCLK -> GPIO19
-                - D1 / MOSI -> GPIO18
-                - RST       -> GPIO5
-                - DC        -> GPIO17
-                - CS        -> GPIO16
+        config SSD1306_IIC_SCL_PIN
+            int "SCL GPIO number"
+            range 0 GPIO_RANGE_MAX
+            default 22 if IDF_TARGET_ESP32
+            default  2 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
+            default  6 # C3 and others
+            help
+                GPIO number (IOxx) to IIC SCL.
+                Some GPIOs are used for other purposes (flash connections, etc.) and cannot be used to IIC.
+                GPIOs 35-39 are input-only so cannot be used as outputs.
 
-        default n
+        config SSD1306_IIC_SDA_PIN
+            int "SDA GPIO number"
+            range 0 GPIO_RANGE_MAX
+            default 21 if IDF_TARGET_ESP32
+            default  1 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
+            default  5 # C3 and others
+            help
+                GPIO number (IOxx) to IIC SDA.
 
-    config SSD1306_SPI_RST_GPIO
-        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
-        int "RESET GPIO number"
-        range -1 GPIO_RANGE_MAX
-		default 15 if IDF_TARGET_ESP32
-		default 38 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default  4 # C3 and others
-        help
-            GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
+        config SSD1306_IIC_PORT
+            int "IIC port that controls this bus"
+            range 0 1
+            default 0
+            help
+                Select IIC port that controls this bus.
 
-    config SSD1306_SPI_RST_PIN
-        depends on SSD1306_SPI
-        int
-        default 5 if SSD1306_SPI_PIN_MATCH
-        default SSD1306_SPI_RST_GPIO if !SSD1306_SPI_PIN_MATCH
+        config SSD1306_IIC_FREQ
+            int "IIC frequency (kHz)"
+            default 400
+            help
+                Select IIC SCL line frequency in kHz.
+                Defaults to 400 kHz, a known 'safe' value for most
+                microcontrollers, and meets the SSD1306 datasheet spec.
+                Some systems can operate IIC faster (800 kHz for ESP32, 1 MHz
+                for many other 32-bit MCUs).
 
-    config SSD1306_SPI_MOSI_GPIO
-        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
-        int "D1 / MOSI GPIO number"
-        range 0 GPIO_RANGE_MAX
-		default 23 if IDF_TARGET_ESP32
-		default 35 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default  1 # C3 and others
-        help
-            GPIO number (IOxx) to SPI MOSI.
+        choice
+            prompt "IIC address"
+            default SSD1306_IIC_ADDRESS_3C
 
-    config SSD1306_SPI_MOSI_PIN
-        depends on SSD1306_SPI
-        int
-        default 18 if SSD1306_SPI_PIN_MATCH
-        default SSD1306_SPI_MOSI_GPIO if !SSD1306_SPI_PIN_MATCH
+            config SSD1306_IIC_ADDRESS_3C
+                bool "0x3C"
+            config SSD1306_IIC_ADDRESS_3D
+                bool "0x3D"
+        endchoice
 
-    config SSD1306_SPI_SCLK_GPIO
-        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
-        int "D0 / SCLK GPIO number"
-        range 0 GPIO_RANGE_MAX
-		default 18 if IDF_TARGET_ESP32
-		default 36 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default  2 # C3 and others
-        help
-            GPIO number (IOxx) to SPI SCLK.
+        config SSD1306_IIC_ADDRESS
+            int
+            default 60 if SSD1306_IIC_ADDRESS_3C
+            default 61 if SSD1306_IIC_ADDRESS_3D
+    endmenu
 
-    config SSD1306_SPI_SCLK_PIN
-        depends on SSD1306_SPI
-        int
-        default 19 if SSD1306_SPI_PIN_MATCH
-        default SSD1306_SPI_SCLK_GPIO if !SSD1306_SPI_PIN_MATCH
+    menu "SPI defaults"
+        config SSD1306_SPI_PIN_MATCH
+            bool "Pins match connector order"
+            help
+                Custom PIN assignment matching the order of the SSD1306 connector pins.
 
-    config SSD1306_SPI_CS_GPIO
-        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
-        int "CS GPIO number"
-		default  5 if IDF_TARGET_ESP32
-		default 34 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default 10 # C3 and others
-        help
-            GPIO number (IOxx) to SPI CS.
+                Pins are assigned starting with GPIO19 (pin 38) as follows:
+                    - D0 / SCLK -> GPIO19
+                    - D1 / MOSI -> GPIO18
+                    - RST       -> GPIO5
+                    - DC        -> GPIO17
+                    - CS        -> GPIO16
 
-    config SSD1306_SPI_CS_PIN
-        depends on SSD1306_SPI
-        int
-        default 16 if SSD1306_SPI_PIN_MATCH
-        default SSD1306_SPI_CS_GPIO if !SSD1306_SPI_PIN_MATCH
+            default n
 
-    config SSD1306_SPI_DC_GPIO
-        depends on SSD1306_SPI && !SSD1306_SPI_PIN_MATCH
-        int "DC GPIO number"
-        range 0 GPIO_RANGE_MAX
-		default  4 if IDF_TARGET_ESP32
-		default 37 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
-		default  3 # C3 and others
-        help
-            GPIO number (IOxx) to SPI DC.
+        config SSD1306_SPI_RST_GPIO
+            depends on !SSD1306_SPI_PIN_MATCH
+            int "RESET GPIO number"
+            range -1 GPIO_RANGE_MAX
+            default 15 if IDF_TARGET_ESP32
+            default 38 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default  4 # C3 and others
+            help
+                GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-    config SSD1306_SPI_DC_PIN
-        depends on SSD1306_SPI
-        int
-        default 17 if SSD1306_SPI_PIN_MATCH
-        default SSD1306_SPI_DC_GPIO if !SSD1306_SPI_PIN_MATCH
+        config SSD1306_SPI_RST_PIN
+            int
+            default 5 if SSD1306_SPI_PIN_MATCH
+            default SSD1306_SPI_RST_GPIO if !SSD1306_SPI_PIN_MATCH
 
-    config SSD1306_SPI_HOST
-        depends on SSD1306_SPI
-        int "SPI peripheral that controls this bus"
-        range 0 1
-        default 1
-        help
-            Select SPI peripheral that controls this bus.
+        config SSD1306_SPI_MOSI_GPIO
+            depends on !SSD1306_SPI_PIN_MATCH
+            int "D1 / MOSI GPIO number"
+            range 0 GPIO_RANGE_MAX
+            default 23 if IDF_TARGET_ESP32
+            default 35 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default  1 # C3 and others
+            help
+                GPIO number (IOxx) to SPI MOSI.
 
-    config SSD1306_SPI_FREQ
-        depends on SSD1306_SPI
-        int "SPI frequency (MHz)"
-        default 1
-        help
-            Select SPI line frequency in MHz.
+        config SSD1306_SPI_MOSI_PIN
+            int
+            default 18 if SSD1306_SPI_PIN_MATCH
+            default SSD1306_SPI_MOSI_GPIO if !SSD1306_SPI_PIN_MATCH
 
+        config SSD1306_SPI_SCLK_GPIO
+            depends on !SSD1306_SPI_PIN_MATCH
+            int "D0 / SCLK GPIO number"
+            range 0 GPIO_RANGE_MAX
+            default 18 if IDF_TARGET_ESP32
+            default 36 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default  2 # C3 and others
+            help
+                GPIO number (IOxx) to SPI SCLK.
+
+        config SSD1306_SPI_SCLK_PIN
+            int
+            default 19 if SSD1306_SPI_PIN_MATCH
+            default SSD1306_SPI_SCLK_GPIO if !SSD1306_SPI_PIN_MATCH
+
+        config SSD1306_SPI_CS_GPIO
+            depends on !SSD1306_SPI_PIN_MATCH
+            int "CS GPIO number"
+            default  5 if IDF_TARGET_ESP32
+            default 34 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 10 # C3 and others
+            help
+                GPIO number (IOxx) to SPI CS.
+
+        config SSD1306_SPI_CS_PIN
+            int
+            default 16 if SSD1306_SPI_PIN_MATCH
+            default SSD1306_SPI_CS_GPIO if !SSD1306_SPI_PIN_MATCH
+
+        config SSD1306_SPI_DC_GPIO
+            depends on !SSD1306_SPI_PIN_MATCH
+            int "DC GPIO number"
+            range 0 GPIO_RANGE_MAX
+            default  4 if IDF_TARGET_ESP32
+            default 37 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default  3 # C3 and others
+            help
+                GPIO number (IOxx) to SPI DC.
+
+        config SSD1306_SPI_DC_PIN
+            int
+            default 17 if SSD1306_SPI_PIN_MATCH
+            default SSD1306_SPI_DC_GPIO if !SSD1306_SPI_PIN_MATCH
+
+        config SSD1306_SPI_HOST
+            int "SPI peripheral that controls this bus"
+            range 0 1
+            default 1
+            help
+                Select SPI peripheral that controls this bus.
+
+        config SSD1306_SPI_FREQ
+            int "SPI frequency (MHz)"
+            default 1
+            help
+                Select SPI line frequency in MHz.
+    endmenu
 endmenu

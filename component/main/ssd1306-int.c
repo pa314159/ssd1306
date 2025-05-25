@@ -21,7 +21,7 @@ inline bool is_move(const status_info_t* status)
 
 void ssd1306_task(ssd1306_int_t dev)
 {
-	LOG_I("Starting task %s, sizeof(int) = %d", pcTaskGetName(xTaskGetCurrentTaskHandle()), sizeof(int));
+	LOG_I("Starting update task for device %u", dev->id);
 
 	dev->active = true;
 
@@ -55,12 +55,12 @@ void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 	const uint64_t start = esp_timer_get_time();
 
 #if CONFIG_SSD1306_OPTIMIZE
- 	const int16_t x0 = bounds->x;
-	const int16_t x1 = bounds->x + bounds->width;
-	const uint16_t p0 = bounds->y / 8;
-	const uint16_t p1 = (bounds->y + bounds->height) / 8;
+ 	const uint16_t x0 = bounds->x0;
+	const uint16_t x1 = bounds->x1;
+	const uint16_t p0 = bounds->y0 / 8;
+	const uint16_t p1 = bounds->y1 / 8;
 
-	LOG_D("x0 = %d, x1 = %d, p0 = %u, p1 = %u", x0, x1, p0, p1);
+	LOG_D("x0 = %u, x1 = %u, p0 = %u, p1 = %u", x0, x1, p0, p1);
 
 	const uint8_t data[] = {
 		OLED_CMD_SET_COLUMN_RANGE, x0, x1 - 1,
@@ -158,15 +158,14 @@ void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint
 	LOG_V("data = %p, size = %u", data, size);
 
 	switch( dev->connection.type ) {
-		case ssd1306_type_i2c:
-			ssd1306_i2c_send(dev, ctl, data, size);
+		case ssd1306_interface_iic:
+			ssd1306_iic_send(dev, ctl, data, size);
 		break;
-		case ssd1306_type_spi:
+		case ssd1306_interface_spi:
 			ssd1306_spi_send(dev, ctl, data, size);
 		break;
 
 		default:
-			LOG_E("Unkown connection type %u", dev->connection.type);
-			abort();
+			ABORT_IF(false, "unreachable code");
 	}
 }

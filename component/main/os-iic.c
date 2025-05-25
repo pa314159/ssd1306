@@ -6,9 +6,8 @@
 #include <driver/gpio.h>
 #include <driver/i2c_master.h>
 
-#define SSD1306_I2C_TIMEOUT 100 /* ms */
+#define SSD1306_IIC_TIMEOUT 100 /* ms */
 
-#if CONFIG_SSD1306_I2C
 static const ssd1306_init_s init_default = {
 #if CONFIG_SSD1306_FLIP
 	flip: true,
@@ -26,19 +25,19 @@ static const ssd1306_init_s init_default = {
 	font: ssd1306_default_font,
 
 	connection: {
-		type: ssd1306_type_i2c,
-		freq: CONFIG_SSD1306_I2C_FREQ,
+		type: ssd1306_interface_iic,
+		freq: CONFIG_SSD1306_IIC_FREQ,
 
-		rst: CONFIG_SSD1306_I2C_RST_PIN,
-		scl: CONFIG_SSD1306_I2C_SCL_PIN,
-		sda: CONFIG_SSD1306_I2C_SDA_PIN,
+		rst: CONFIG_SSD1306_IIC_RST_PIN,
+		scl: CONFIG_SSD1306_IIC_SCL_PIN,
+		sda: CONFIG_SSD1306_IIC_SDA_PIN,
 
-		port: CONFIG_SSD1306_I2C_PORT,
-		address: CONFIG_SSD1306_I2C_ADDRESS,
+		port: CONFIG_SSD1306_IIC_PORT,
+		address: CONFIG_SSD1306_IIC_ADDRESS,
 	},
 };
 
-ssd1306_init_t ssd1306_create_init()
+ssd1306_init_t ssd1306_iic_create_init()
 {
 	ssd1306_init_t init = malloc(sizeof(ssd1306_init_s));
 
@@ -50,9 +49,8 @@ ssd1306_init_t ssd1306_create_init()
 
 	return init;
 }
-#endif
 
-struct ssd1306_i2c_s {
+struct ssd1306_iic_s {
 	i2c_master_bus_handle_t bus_handle;
 	i2c_master_dev_handle_t dev_handle;
 };
@@ -68,7 +66,7 @@ struct ssd1306_i2c_s {
 //  80 1a 06 00 00 00 00 00
 //  00 00 00 00
 
-ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
+ssd1306_iic_t ssd1306_iic_init(ssd1306_init_t init)
 {
 	esp_log_level_set("i2c.master", (esp_log_level_t)CONFIG_SSD1306_LOGGING_LEVEL);
 
@@ -86,18 +84,18 @@ ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 		.sda_io_num = init->connection.sda,
 		.flags.enable_internal_pullup = true,
 	};
-	ssd1306_dump(&bus_cfg, sizeof(bus_cfg), "I2C bus config");
+	ssd1306_dump(&bus_cfg, sizeof(bus_cfg), "IIC bus config");
 
 	const i2c_device_config_t dev_cfg = {
 		.dev_addr_length = I2C_ADDR_BIT_LEN_7,
 		.device_address = init->connection.address,
 		.scl_speed_hz = 1000 * init->connection.freq,
 	};
-	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "I2C dev config");
+	ssd1306_dump(&dev_cfg, sizeof(dev_cfg), "IIC dev config");
 
-	ssd1306_i2c_t i2c = malloc(sizeof(struct ssd1306_i2c_s));
+	ssd1306_iic_t i2c = malloc(sizeof(struct ssd1306_iic_s));
 
-	ABORT_IF(i2c == NULL, "cannot allocate memory for ssd1306_i2c_t");
+	ABORT_IF(i2c == NULL, "cannot allocate memory for ssd1306_iic_t");
 
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &i2c->bus_handle));
 	ESP_ERROR_CHECK(i2c_master_bus_add_device(i2c->bus_handle, &dev_cfg, &i2c->dev_handle));
@@ -114,13 +112,13 @@ ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init)
 }
 
 #if 0
-void ssd1306_i2c_free(ssd1306_i2c_t i2c)
+void ssd1306_iic_free(ssd1306_iic_t i2c)
 {
 	free(i2c);
 }
 #endif
 
-void ssd1306_i2c_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
+void ssd1306_iic_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
 	uint8_t* temp = malloc(size+1);
 
@@ -128,9 +126,9 @@ void ssd1306_i2c_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint1
 
 	memcpy(temp+1, data, size);
 
-	ssd1306_dump(temp, size + 1, "I2C buffer size = %u", size + 1);
+	ssd1306_dump(temp, size + 1, "IIC buffer size = %u", size + 1);
 
-	ESP_ERROR_CHECK(i2c_master_transmit(dev->i2c->dev_handle, temp, size + 1, SSD1306_I2C_TIMEOUT));
+	ESP_ERROR_CHECK(i2c_master_transmit(dev->i2c->dev_handle, temp, size + 1, SSD1306_IIC_TIMEOUT));
 
 	free(temp);
 }

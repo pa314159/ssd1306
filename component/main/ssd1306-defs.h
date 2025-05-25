@@ -6,7 +6,7 @@
  */
 
  // SLA (0x3C) + WRITE_MODE (0x00) =  0x78 (0b01111000)
-#define OLED_I2C_ADDRESS                0x3C
+#define OLED_IIC_ADDRESS                0x3C
 
 // Control byte
 // #define OLED_CTL_BYTE_CMD_SINGLE        0x80

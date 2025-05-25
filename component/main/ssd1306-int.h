@@ -25,7 +25,7 @@ typedef struct ssd1306_int_s {
 	const ssd1306_connection_t connection;
 
 	union {
-		ssd1306_i2c_t i2c;
+		ssd1306_iic_t i2c;
 		ssd1306_spi_t spi;
 	};
 

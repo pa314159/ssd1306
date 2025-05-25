@@ -24,15 +24,18 @@ extern "C" {
 #define _countof(x) (sizeof(x)/sizeof(x[0]))
 
 typedef struct ssd1306_int_s* ssd1306_int_t;
-typedef struct ssd1306_i2c_s* ssd1306_i2c_t;
+typedef struct ssd1306_iic_s* ssd1306_iic_t;
 typedef struct ssd1306_spi_s* ssd1306_spi_t;
 
 extern const ssd1306_glyph_t ssd1306_default_font[] asm("_binary_" CONFIG_SSD1306_FONT "_fnt_start");
 
-ssd1306_i2c_t ssd1306_i2c_init(ssd1306_init_t init);
+ssd1306_init_t ssd1306_iic_create_init();
+ssd1306_init_t ssd1306_spi_create_init();
+
+ssd1306_iic_t ssd1306_iic_init(ssd1306_init_t init);
 ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init);
 
-void ssd1306_i2c_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size);
+void ssd1306_iic_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size);
 void ssd1306_spi_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size);
 
 void ssd1306_log_set_level(uint8_t level);
@@ -66,7 +69,7 @@ void ssd1306_log(uint8_t level, const char* function, int line, const char* form
 extern int esp_log_level_get_timeout(const char*);
 
 #if 0
-void ssd1306_i2c_free(ssd1306_i2c_t dev);
+void ssd1306_iic_free(ssd1306_iic_t dev);
 void ssd1306_spi_free(ssd1306_spi_t dev);
 #endif
 

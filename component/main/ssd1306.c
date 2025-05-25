@@ -27,6 +27,27 @@ static ssd1306_bitmap_t* ssd1306_text_bitmapv(ssd1306_t device, const char* form
 
 static void ssd1306_text_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* format, va_list args);
 
+ssd1306_init_t ssd1306_create_init(ssd1306_interface_t type)
+{
+	if( type == ssd1306_interface_any ) {
+		type = CONFIG_SSD1306_INTERFACE;	
+	}
+
+	switch( type ) {
+		case ssd1306_interface_iic: {
+			return ssd1306_iic_create_init();
+		}
+		
+		case ssd1306_interface_spi: {
+			return ssd1306_spi_create_init();
+		}
+
+		default:
+			ABORT_IF(false, "unreachable code");
+			return NULL;
+	}
+}
+
 ssd1306_t ssd1306_init(ssd1306_init_t init)
 {
 	ssd1306_log_set_level(CONFIG_SSD1306_LOGGING_LEVEL);
@@ -38,7 +59,7 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	LOG_V("LOG_VERBOSE");
 
 	if( init == NULL ) {
-		init = ssd1306_create_init();
+		init = ssd1306_create_init(ssd1306_interface_any);
 	}
 
 	// allocate additional bytes for internal buffer and raster
@@ -63,14 +84,17 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	LOG_I("    Invert: %d", init->invert);
 
 	switch( init->connection.type ) {
-		case ssd1306_type_i2c:
-			LOG_I("    Type: I2C");
-			dev->i2c = ssd1306_i2c_init(init);
+		case ssd1306_interface_iic:
+			LOG_I("    Type: IIC");
+			dev->i2c = ssd1306_iic_init(init);
 		break;
-		case ssd1306_type_spi:
+		case ssd1306_interface_spi:
 			LOG_I("    Type: SPI");
 			dev->spi = ssd1306_spi_init(init);
 		break;
+
+		default:
+			ABORT_IF(false, "unreachable code");
 	}
 
 	LOG_I("Initialising screen");
@@ -107,11 +131,11 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		vTaskDelay(SSD1306_SEM_TICKS);
 	}
 
+	ssd1306_update((ssd1306_t)dev, NULL);
+
 #if CONFIG_SSD1306_SPLASH > 0
 	ssd1306_draw((ssd1306_t)dev, (dev->w - splash_bmp->w) / 2, (dev->h - splash_bmp->h) / 2, splash_bmp->w, splash_bmp->h, splash_bmp);
 	vTaskDelay(pdMS_TO_TICKS(CONFIG_SSD1306_SPLASH));
-#else
-	ssd1306_update(&dev->parent, NULL);
 #endif
 
 	if( init->free ) {
@@ -131,10 +155,10 @@ void ssd1306_free(ssd1306_t device)
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	switch( dev->connection.type ) {
-		case ssd1306_type_i2c:
-			ssd1306_i2c_free(dev->i2c);
+		case ssd1306_interface_i2c:
+			ssd1306_iic_free(dev->i2c);
 		break;
-		case ssd1306_type_spi:
+		case ssd1306_interface_spi:
 			ssd1306_spi_free(dev->spi);
 		break;
 	}
@@ -171,7 +195,7 @@ void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 #if CONFIG_SSD1306_OPTIMIZE
 	if( dev->no_update ) {
 		if( bounds ) {
-			ssd1306_extend_bounds(&dev->dirty_bounds, bounds);
+			ssd1306_bounds_union(&dev->dirty_bounds, bounds);
 		}
 	} else {
 #else
@@ -181,9 +205,7 @@ void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 		if( bounds ) {
 			xQueueSend(dev->queue, bounds, portMAX_DELAY);
 		} else {
-			const ssd1306_bounds_t m = { size: dev->size, };
-
-			xQueueSend(dev->queue, &m, portMAX_DELAY);
+			xQueueSend(dev->queue, &device->bounds, portMAX_DELAY);
 		}
 #else
 		xTaskNotifyGive(dev->task);
@@ -201,8 +223,10 @@ void ssd1306_auto_update(ssd1306_t device, bool on)
 
 #if CONFIG_SSD1306_OPTIMIZE
 	if( !on && dev->no_update == 1 ) {
-		memset(&dev->dirty_bounds, 0, sizeof(dev->dirty_bounds));
+		dev->dirty_bounds.x0 = dev->dirty_bounds.y0 = 0x7fff;
+		dev->dirty_bounds.x1 = dev->dirty_bounds.y1 = 0xffff;
 	}
+
 	ssd1306_update(device, &dev->dirty_bounds);
 #else
 	ssd1306_update(device, NULL);
