@@ -7,7 +7,7 @@
 #include <freertos/task.h>
 #include <esp_check.h>
 
-#define SCREEN_SPLASH_FPS   30
+#define SCREEN_SPLASH_FPS   40
 #define SCREEN_SPLASH_TICKS pdMS_TO_TICKS(1000/SCREEN_SPLASH_FPS)
 
 const ssd1306_bitmap_t ugly_bitmap = {
@@ -30,45 +30,48 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 {
 	TickType_t ticks = xTaskGetTickCount();
 
-	const unsigned posX = abs((int)device->width - (int)bitmap->width) / 2;
-	const unsigned posY = abs((int)device->height - (int)bitmap->height) / 2;
+	const int16_t posX = ((int)device->width - (int)bitmap->width) / 2;
+	const int16_t posY = ((int)device->height - (int)bitmap->height) / 2;
+
+	const int16_t xmin = -(int)bitmap->width - 1;
+	const int16_t xmax = device->width + bitmap->width + 1;
+	const int16_t ymin = -(int)bitmap->height - 1;
+	const int16_t ymax = device->height + bitmap->height + 1;
 
 	ssd1306_bounds_t bounds = {
-		x: posX,
-		y: posY,
-		width: bitmap->width,
-		height: bitmap->height,
+		x1: bitmap->width,
+		y1: bitmap->height,
 	};
 
-	const int x0 = -(int)bitmap->width - 1;
-	const int x1 = device->width + + 1;
-
 	ssd1306_clear_b(device, NULL);
+	ssd1306_bounds_move_to(&bounds, xmin, posY);
 	ssd1306_auto_update(device, false);
-	for( bounds.x = x1, bounds.y = posY; bounds.x >= x0; bounds.x-- ) {
+	while( bounds.x0 >= xmin && bounds.x1 <= xmax ) {
 		ssd1306_draw_b(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 		ssd1306_auto_update(device, false);
 		ssd1306_clear_b(device, &bounds);
-		ssd1306_clear(device, 0, device->height - 8, device->width, 8);
+
+		ssd1306_bounds_move_by(&bounds, 1, 0);
 	}
 	ssd1306_auto_update(device, true);
 
-	const int y0 = -(int)bitmap->height - 1;
-	const int y1 = device->height + 1;
-
 	ssd1306_clear_b(device, NULL);
+	ssd1306_bounds_move_to(&bounds, posX, ymin);
 	ssd1306_auto_update(device, false);
-	for( bounds.x = posX, bounds.y = y0; bounds.y <= y1; bounds.y++ ) {
+	while( bounds.y0 >= ymin && bounds.y1 <= ymax ) {
 		ssd1306_draw_b(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_SPLASH_TICKS);
 		ssd1306_auto_update(device, false);
 		ssd1306_clear_b(device, &bounds);
+
+		ssd1306_bounds_move_by(&bounds, 0, 1);
 	}
 	ssd1306_auto_update(device, true);
 
+	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(2500));
 	ssd1306_clear_b(device, NULL);
 	ssd1306_draw(device, posX, posY, device->width, device->height, bitmap);
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(2500));

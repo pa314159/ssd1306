@@ -27,23 +27,23 @@ void fill_with_random(ssd1306_t device)
 
 void expand_black_rectangle(ssd1306_t device, TickType_t* ticks)
 {
-	const unsigned dim = mini(device->width, device->height) / 2 - 1;
+	const int16_t dim = mini(device->width, device->height) / 2 - 1;
 
 	ssd1306_bounds_t bounds = {
-		x: dim, y: dim, 
-		width: device->width - 2*dim,
-		height: device->height - 2*dim,
+		x0: dim, y0: dim, 
+		x1: device->width - dim,
+		y1: device->height - dim,
 	};
 
-	while( bounds.x >= 0 && bounds.y >= 0 ) {
+	while( bounds.x0 >= 0 && bounds.y0 >= 0 ) {
 		ssd1306_clear_b(device, &bounds);
 
 		vTaskDelayUntil(ticks, SCREEN_SPLASH_TICKS);
 
-		bounds.x--;
-		bounds.y--;
-		bounds.width += 2;
-		bounds.height += 2;
+		bounds.x0--;
+		bounds.y0--;
+		bounds.x1++;
+		bounds.y1++;
 	}
 }
 
@@ -57,7 +57,7 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 
 	ssd1306_grab_b(device, NULL, temp);
 
-	while( bounds.x <= dim && bounds.y <= dim ) {
+	while( bounds.x0 <= dim && bounds.y0 <= dim ) {
 		ssd1306_auto_update(device, false);
 		ssd1306_draw_b(device, NULL, temp);
 		ssd1306_clear_b(device, &bounds);
@@ -65,10 +65,10 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 
 		vTaskDelayUntil(ticks, SCREEN_SPLASH_TICKS);
 
-		bounds.x++;
-		bounds.y++;
-		bounds.width -= 2;
-		bounds.height -= 2;
+		bounds.x0++;
+		bounds.y0++;
+		bounds.x1--;
+		bounds.y1--;
 	}
 }
 
@@ -94,9 +94,13 @@ void app_main(void)
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
 
-	for( int16_t ct = 0xff; ct >= 0; ct-- ) {
+	for( uint8_t ct = 0xff; ; ct >>= 1 ) {
 		ssd1306_contrast(device, ct);
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(50));
+		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(250));
+
+		if( ct == 0 ) {
+			break;
+		}
 	}
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));

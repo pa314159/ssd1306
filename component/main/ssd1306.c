@@ -19,6 +19,9 @@ static void ssd1306_get_page_1(ssd1306_t device, uint8_t page, int16_t offset, u
 static void ssd1306_get_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, uint8_t* data, int8_t bits, uint8_t d_mask);
 static bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size);
 
+static const char TEXT_SEPA[] = " \x4 ";
+static const unsigned TEXT_SEPA_Z = 3;
+
 static char* ssd1306_text_formatv(uint16_t* length, const char* format, va_list args);
 static ssd1306_bitmap_t* ssd1306_text_bitmapv(ssd1306_t device, const char* format, va_list args);
 
@@ -39,8 +42,8 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	}
 
 	// allocate additional bytes for internal buffer and raster
-	const uint8_t pages = bytes_cap(init->height);
-	const size_t total = sizeof(ssd1306_int_s) + pages*init->width;
+	const uint8_t pages = bytes_cap(init->h);
+	const size_t total = sizeof(ssd1306_int_s) + pages*init->w;
 
 	ssd1306_int_t dev = calloc(1, total);
 
@@ -53,7 +56,8 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	ssd1306_dump(dev, sizeof(ssd1306_int_s), "Initialisation structure");
 
 	LOG_I("Initialising device");
-	LOG_I("    Size: %ux%u (%u pages)", dev->width, dev->height, dev->pages);
+	LOG_I("    Size: %ux%u (%u pages)", dev->w, dev->h, dev->pages);
+	LOG_I("    Bounds: [%+d%+d, %+d%+d]", dev->x0, dev->y0, dev->x1, dev->y1);
 	LOG_I("    Flip: %s", dev->flip ? "yes" : "no");
 	LOG_I("    Contrast: %d", init->contrast);
 	LOG_I("    Invert: %d", init->invert);
@@ -104,17 +108,7 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	}
 
 #if CONFIG_SSD1306_SPLASH > 0
-	assert(dev->width >= splash_bmp->width);
-	assert(dev->height >= splash_bmp->height);
-
-	const ssd1306_bounds_t splash_bnd = {
-		x: (dev->width - splash_bmp->width) / 2,
-		y: (dev->height - splash_bmp->height) / 2,
-		width: splash_bmp->width,
-		height: splash_bmp->height,
-	};
-
-	ssd1306_draw_b(&dev->parent, &splash_bnd, splash_bmp);
+	ssd1306_draw((ssd1306_t)dev, (dev->w - splash_bmp->w) / 2, (dev->h - splash_bmp->h) / 2, splash_bmp->w, splash_bmp->h, splash_bmp);
 	vTaskDelay(pdMS_TO_TICKS(CONFIG_SSD1306_SPLASH));
 #else
 	ssd1306_update(&dev->parent, NULL);
@@ -124,7 +118,7 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		free(init);
 	}
 
-	return &dev->parent;
+	return (ssd1306_t)dev;
 }
 
 #if __SSD1306_FREE
@@ -152,6 +146,8 @@ void ssd1306_free(ssd1306_t device)
 
 bool ssd1306_acquire(ssd1306_t device)
 {
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	return xSemaphoreTakeRecursive(dev->mutex, SSD1306_SEM_TICKS);
@@ -159,6 +155,8 @@ bool ssd1306_acquire(ssd1306_t device)
 
 void ssd1306_release(ssd1306_t device)
 {
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	xSemaphoreGiveRecursive(dev->mutex);
@@ -166,6 +164,8 @@ void ssd1306_release(ssd1306_t device)
 
 void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 {
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 #if CONFIG_SSD1306_OPTIMIZE
@@ -193,6 +193,8 @@ void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 void ssd1306_auto_update(ssd1306_t device, bool on)
 {
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	dev->no_update += on ? -1 : +1;
@@ -209,12 +211,17 @@ void ssd1306_auto_update(ssd1306_t device, bool on)
 
 uint8_t* ssd1306_raster(ssd1306_t device, uint8_t page)
 {
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
-	return dev->buff + page * device->width;
+	return dev->buff + page * device->w;
 }
 
-void ssd1306_on(ssd1306_t device, bool on) {
+void ssd1306_on(ssd1306_t device, bool on)
+{
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	const uint8_t data = OLED_CMD1(DISPLAY_OFF, on);
@@ -228,7 +235,10 @@ void ssd1306_on(ssd1306_t device, bool on) {
 	}
 }
 
-void ssd1306_invert(ssd1306_t device, bool on) {
+void ssd1306_invert(ssd1306_t device, bool on)
+{
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	const uint8_t data = OLED_CMD1(DISPLAY_NORMAL, on);
@@ -242,7 +252,10 @@ void ssd1306_invert(ssd1306_t device, bool on) {
 	}
 }
 
-void ssd1306_contrast(ssd1306_t device, uint8_t contrast) {
+void ssd1306_contrast(ssd1306_t device, uint8_t contrast)
+{
+	ABORT_IF_NULL(device);
+
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
 	const uint8_t data[] = { OLED_CMD2(SET_CONTRAST, contrast) };
@@ -258,14 +271,10 @@ void ssd1306_contrast(ssd1306_t device, uint8_t contrast) {
 
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds)
 {
-	ESP_RETURN_VOID_ON_FALSE(device, LOG_DOMAIN, "device is NULL");
+	ABORT_IF_NULL(device);
 
 	if( bounds == NULL ) {
-		ssd1306_auto_update(device, false);
 		ssd1306_clear_b(device, &device->bounds);
-		ssd1306_status(device, ssd1306_status_0, NULL);
-		ssd1306_status(device, ssd1306_status_1, NULL);
-		ssd1306_auto_update(device, true);
 
 		return;
 	}
@@ -289,11 +298,13 @@ void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed)
 {
-	const unsigned t_page = trimmed->y / 8;
-	const unsigned t_bits = trimmed->y % 8;
+	const uint16_t trimmed_w = ssd1306_bounds_width(trimmed);
 
-	const unsigned b_page = (trimmed->y + trimmed->height) / 8;
-	const unsigned b_bits = (trimmed->y + trimmed->height) % 8;
+	const uint8_t t_page = trimmed->y0 / 8;
+	const uint8_t t_bits = trimmed->y0 % 8;
+
+	const uint8_t b_page = trimmed->y1 / 8;
+	const uint8_t b_bits = trimmed->y1 % 8;
 
 	const uint8_t t_mask = set_bits(-t_bits);
 	const uint8_t b_mask = set_bits(8 - b_bits);
@@ -304,15 +315,15 @@ void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, co
 	uint8_t page = t_page;
 
 	if( t_bits ) {
-		ssd1306_mask_page(device, page++, trimmed->x, trimmed->width, t_mask);
+		ssd1306_mask_page(device, page++, trimmed->x0, trimmed_w, t_mask);
 	}
 
 	while( page < b_page ) {
-		ssd1306_mask_page(device, page++, trimmed->x, trimmed->width, 0);
+		ssd1306_mask_page(device, page++, trimmed->x0, trimmed_w, 0);
 	}
 
 	if( b_bits ) {
-		ssd1306_mask_page(device, page++, trimmed->x, trimmed->width, b_mask);
+		ssd1306_mask_page(device, page++, trimmed->x0, trimmed_w, b_mask);
 	}
 }
 
@@ -335,11 +346,14 @@ void ssd1306_mask_page(ssd1306_t device, uint8_t page, int16_t offset, uint16_t 
 
 void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap)
 {
-	ESP_RETURN_VOID_ON_FALSE(device, LOG_DOMAIN, "device is NULL");
-	ESP_RETURN_VOID_ON_FALSE(bitmap, LOG_DOMAIN, "bitmap is NULL");
+	ABORT_IF_NULL(device);
+	ABORT_IF_NULL(bitmap);
 
 	if( bounds == NULL ) {
-		ssd1306_draw_b(device, &device->bounds, bitmap);
+		ssd1306_draw(device, 
+			((int)device->w - (int)bitmap->w) / 2,
+			((int)device->h - (int)bitmap->h) / 2,
+			bitmap->w, bitmap->h, bitmap);
 
 		return;
 	}
@@ -365,42 +379,43 @@ void ssd1306_draw_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, con
 {
 	const uint8_t* image = bitmap->image;
 
-	if( bounds->x < 0 ) {
-		image += -bounds->x;
+	if( bounds->x0 < 0 ) {
+		image += -bounds->x0;
 	}
 
-	int y_bits = 0;
+	int16_t y_bits = 0;
 
-	if( bounds->y < 0 ) {
-		y_bits = bounds->y & 7;
+	if( bounds->y0 < 0 ) {
+		y_bits = bounds->y0 & 7;
 
-		image += ((-bounds->y-1) / 8) * bitmap->width;
+		image += ((-bounds->y0-1) / 8) * bitmap->w;
 
 		LOG_D("Image shifted by %d for y_bits %d", image - bitmap->image, y_bits);
 	}
 
-	const int t_page = bounds->y < 0 ? -1 : trimmed->y >> 3;
-	const int t_bits = bounds->y < 0 ? y_bits : trimmed->y & 7;
+	const uint16_t trimmed_w = ssd1306_bounds_width(trimmed);
+
+	const int16_t t_page = bounds->y0 < 0 ? -1 : trimmed->y0 >> 3;
+	const int16_t t_bits = bounds->y0 < 0 ? y_bits : trimmed->y0 & 7;
+
+	const int16_t b_page = trimmed->y1 >> 3;
+	const int16_t b_bits = trimmed->y1 & 7;
 
 	LOG_D("t_page = %d, t_bits = %d", t_page, t_bits);
-
-	const int b_page = (trimmed->y + trimmed->height) >> 3;
-	const int b_bits = (trimmed->y + trimmed->height) & 7;
-
 	LOG_D("b_page = %d, b_bits = %d", b_page, b_bits);
 
-	for( int page = t_page; page < b_page; image += bitmap->width ) {
+	for( int16_t page = t_page; page < b_page; image += bitmap->w ) {
 		if( page >= 0 ) {
-			ssd1306_set_page_1(device, page, trimmed->x, trimmed->width, image, -t_bits);
+			ssd1306_set_page_1(device, page, trimmed->x0, trimmed_w, image, -t_bits);
 		}
 
 		page++;
 
 		if( t_bits && (page < b_page) ) {
-			ssd1306_set_page_1(device, page, trimmed->x, trimmed->width, image, 8-t_bits);
+			ssd1306_set_page_1(device, page, trimmed->x0, trimmed_w, image, 8-t_bits);
 		}
 		if( b_bits && (page == b_page) ) {
-			ssd1306_set_page_2(device, page, trimmed->x, trimmed->width, image, 8-t_bits, set_bits(8-b_bits));
+			ssd1306_set_page_2(device, page, trimmed->x0, trimmed_w, image, 8-t_bits, set_bits(8-b_bits));
 		}
 	}
 }
@@ -435,11 +450,14 @@ void ssd1306_set_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_t
 
 void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap)
 {
-	ESP_RETURN_VOID_ON_FALSE(device, LOG_DOMAIN, "device is NULL");
-	ESP_RETURN_VOID_ON_FALSE(bitmap, LOG_DOMAIN, "bitmap is NULL");
+	ABORT_IF_NULL(device);
+	ABORT_IF_NULL(bitmap);
 
 	if( bounds == NULL ) {
-		ssd1306_grab_b(device, &device->bounds, bitmap);
+		ssd1306_grab(device, 
+			((int)device->w - (int)bitmap->w) / 2,
+			((int)device->h - (int)bitmap->h) / 2,
+			bitmap->w, bitmap->h, bitmap);
 
 		return;
 	}
@@ -465,42 +483,43 @@ void ssd1306_grab_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, con
 {
 	uint8_t* image = bitmap->image;
 
-	if( bounds->x < 0 ) {
-		image += -bounds->x;
+	if( bounds->x0 < 0 ) {
+		image += -bounds->x0;
 	}
 
-	int y_bits = 0;
+	int16_t y_bits = 0;
 
-	if( bounds->y < 0 ) {
-		y_bits = bounds->y & 7;
+	if( bounds->y0 < 0 ) {
+		y_bits = bounds->y0 & 7;
 
-		image += ((-bounds->y-1) / 8) * bitmap->width;
+		image += ((-bounds->y0-1) / 8) * bitmap->w;
 
 		LOG_D("Image shifted by %d for y_bits %d", image - bitmap->image, y_bits);
 	}
 
-	const int t_page = bounds->y < 0 ? -1 : trimmed->y >> 3;
-	const int t_bits = bounds->y < 0 ? y_bits : trimmed->y & 7;
+	const uint16_t trimmed_w = ssd1306_bounds_width(trimmed);
+
+	const int16_t t_page = bounds->y0 < 0 ? -1 : trimmed->y0 >> 3;
+	const int16_t t_bits = bounds->y0 < 0 ? y_bits : trimmed->y0 & 7;
+
+	const int16_t b_page = trimmed->y1 >> 3;
+	const int16_t b_bits = trimmed->y1 & 7;
 
 	LOG_D("t_page = %d, t_bits = %d", t_page, t_bits);
-
-	const int b_page = (trimmed->y + trimmed->height) >> 3;
-	const int b_bits = (trimmed->y + trimmed->height) & 7;
-
 	LOG_D("b_page = %d, b_bits = %d", b_page, b_bits);
 
-	for( int page = t_page; page < b_page; image += bitmap->width ) {
+	for( int16_t page = t_page; page < b_page; image += bitmap->w ) {
 		if( page >= 0 ) {
-			ssd1306_get_page_1(device, page, trimmed->x, trimmed->width, image, t_bits);
+			ssd1306_get_page_1(device, page, trimmed->x0, trimmed_w, image, t_bits);
 		}
 
 		page++;
 
 		if( t_bits && (page < b_page) ) {
-			ssd1306_get_page_1(device, page, trimmed->x, trimmed->width, image, t_bits - 8);
+			ssd1306_get_page_1(device, page, trimmed->x0, trimmed_w, image, t_bits - 8);
 		}
 		if( b_bits && (page == b_page) ) {
-			ssd1306_get_page_2(device, page, trimmed->x, trimmed->width, image, t_bits - 8, set_bits(b_bits - 8));
+			ssd1306_get_page_2(device, page, trimmed->x0, trimmed_w, image, t_bits - 8, set_bits(b_bits - 8));
 		}
 	}
 }
@@ -535,6 +554,9 @@ void ssd1306_get_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_t
 
 ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...)
 {
+	ABORT_IF_NULL(device);
+	ABORT_IF_NULL(format);
+
 	ssd1306_bitmap_t* bitmap;
 	va_list args;
 
@@ -552,18 +574,15 @@ ssd1306_bitmap_t* ssd1306_text_bitmapv(ssd1306_t device, const char* format, va_
 
 	uint16_t width = ssd1306_text_width(device, text);
 
-	if( width > device->width ) {
-		length += 3;
-		text = realloc(text, length);
+	if( width > device->w ) {
+		length += TEXT_SEPA_Z;
 
-		ABORT_IF(text == NULL, "cannot reallocate memory for text of size %u", length);
-
-		strcat(text, " \x4 ");
+		strcat(text, TEXT_SEPA);
 
 		width = ssd1306_text_width(device, text);
 	}
 
-	ssd1306_bitmap_t* const bitmap = ssd1306_create_bitmap(width, SSD1306_TEXT_HEIGHT);
+	ssd1306_bitmap_t* bitmap = ssd1306_create_bitmap(width, SSD1306_TEXT_HEIGHT);
 
 	bool invert = false;
 
@@ -578,14 +597,14 @@ ssd1306_bitmap_t* ssd1306_text_bitmapv(ssd1306_t device, const char* format, va_
 		const ssd1306_glyph_t* glyph = device->font + cpos;
 
 		if( invert ) {
-			for( int k = 0; k < glyph->width; k++ ) {
+			for( int k = 0; k < glyph->w; k++ ) {
 				bitmap->image[offset + k] = ~glyph->image[k];
 			}
 		} else {
-			memcpy(bitmap->image + offset, glyph->image, glyph->width);
+			memcpy(bitmap->image + offset, glyph->image, glyph->w);
 		}
 
-		offset += glyph->width;
+		offset += glyph->w;
 	}
 
 	free(text);
@@ -623,6 +642,9 @@ void ssd1306_text_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, con
 
 uint16_t ssd1306_text_width(ssd1306_t device, const char* text)
 {
+	ABORT_IF_NULL(device);
+	ABORT_IF_NULL(text);
+
 	uint16_t width = 0;
 
 	for( ; *text; text++ ) {
@@ -633,15 +655,13 @@ uint16_t ssd1306_text_width(ssd1306_t device, const char* text)
 		width += device->font[(uint8_t)(*text)].width;
 	}
 
-	LOG_D("text width in pixels of %$s is %u", width);
-
 	return width;
 }
 
 char* ssd1306_text_formatv(uint16_t* length, const char* format, va_list args)
 {
 	uint16_t needed = vsnprintf(NULL, 0, format, args) + 1;
-	char* text = malloc(needed);
+	char* text = malloc(needed + TEXT_SEPA_Z);
 
 	ABORT_IF(text == NULL, "cannot allocate memory for text of size %u", needed);
 
@@ -675,8 +695,6 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 
 	status = ssd1306_status_bounds(device, status, &bounds);
 
-	LOG_V("status %d, bounds %ux%u%+d%+d", status, bounds.w, bounds.h, bounds.x, bounds.y);
-
 	ssd1306_int_t dev = (ssd1306_int_t)device;
 	status_info_t* anim = &dev->statuses[status];
 
@@ -702,9 +720,9 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		ssd1306_draw_internal(device, &bounds, &trimmed, bitmap);
 		ssd1306_update(device, &bounds);
 
-		if( bitmap->width > device->width ) {
+		if( bitmap->w > device->w ) {
 			anim->bitmap = bitmap;
-			anim->page = bounds.y / 8;
+			anim->page = bounds.y0 / 8;
 			anim->state = anim_init;
 
 			LOG_D("text will scroll in background");
@@ -722,23 +740,25 @@ ssd1306_status_t ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status
 		status = device->flip ? 1 - ((int)status - (int)ssd1306_status_ext) : (int)status - (int)ssd1306_status_ext;
 	}
 
-	bounds->x = 0;
-	bounds->y = device->flip ? device->height - SSD1306_TEXT_HEIGHT * (2-status) : SSD1306_TEXT_HEIGHT * status;
-	bounds->width = device->width;
-	bounds->height = SSD1306_TEXT_HEIGHT;
+	bounds->x0 = 0;
+	bounds->y0 = device->flip ? device->h - SSD1306_TEXT_HEIGHT * (2-status) : SSD1306_TEXT_HEIGHT * status;
+	bounds->x1 = device->w;
+	bounds->y1 = bounds->y0 + SSD1306_TEXT_HEIGHT;
+
+	LOG_V("status %d, bounds [%+d%+d, %+d%+d]", status, bounds->x0, bounds->y0, bounds->x1, bounds->y1);
 
 	return status;
 }
 
 void ssd1306_init_private(ssd1306_int_t dev, const ssd1306_init_t ini, uint8_t pages)
 {
-	struct ssd1306_s* device = (struct ssd1306_s*)&dev->parent;
-
-	device->id = ini->id;
-	device->flip = ini->flip;
-	device->size = ini->size;
-	device->pages = pages;
-	device->font = ini->font;
+	dev->id = ini->id;
+	dev->flip = ini->flip;
+	dev->x1 = ini->w;
+	dev->y1 = ini->h;
+	dev->size = ini->size;
+	dev->pages = pages;
+	dev->font = ini->font;
 	
 	memcpy((void*)&dev->connection, &ini->connection, sizeof(dev->connection));
 }
@@ -748,21 +768,21 @@ void ssd1306_init_screen(ssd1306_int_t dev, const ssd1306_init_t ini)
 	const uint8_t data[] = {
 // 		OLED_CMD_DISPLAY_OFF,
 // 		OLED_CMD_SET_DISPLAY_CLK_DIV, 0x80,
-// 		OLED_CMD_SET_MUX_RATIO, dev->height-1,
+// 		OLED_CMD_SET_MUX_RATIO, dev->h-1,
 // 		OLED_CMD_SET_DISPLAY_OFFSET, 0x00,
 // 		OLED_CMD_SET_DISPLAY_START_LINE | 0x00,
 // 		OLED_CMD_SET_CHARGE_PUMP, 0x14,
 
 // #if !CONFIG_SSD1306_OPTIMIZE
 // 		OLED_CMD_SET_MEMORY_ADDR_MODE, OLED_CMD_SET_HORI_ADDR_MODE,
-// 		OLED_CMD_SET_COLUMN_RANGE, 0, dev->width-1,
+// 		OLED_CMD_SET_COLUMN_RANGE, 0, dev->w-1,
 // 		OLED_CMD_SET_PAGE_RANGE, 0, dev->pages-1,
 // #endif
 
 // 		OLED_CMD_SET_SEGMENT_REMAP | (dev->flip ? 0x00 : 0x01),
 // 		OLED_CMD_SET_COM_SCAN_MODE | (dev->flip ? 0x00 : 0x08),
 
-// 		OLED_CMD_SET_COM_PIN_MAP, dev->height == 64 ? 0x12:  0x02,
+// 		OLED_CMD_SET_COM_PIN_MAP, dev->h == 64 ? 0x12:  0x02,
 // 		OLED_CMD_SET_CONTRAST, 0x7F,
 // 		OLED_CMD_SET_PRECHARGE, 0xf1,
 // 		OLED_CMD_SET_VCOMH_DESELCT, 0x40,
@@ -774,12 +794,12 @@ void ssd1306_init_screen(ssd1306_int_t dev, const ssd1306_init_t ini)
 
 		OLED_CMD0(DISPLAY_OFF),
 
-		OLED_CMD2(SET_MUX_RATIO, dev->height-1),
+		OLED_CMD2(SET_MUX_RATIO, dev->h-1),
 		OLED_CMD1(SET_SEGMENT_REMAP, dev->flip ? 0x00 : 0x01),
 		OLED_CMD1(SET_COM_SCAN_MODE, dev->flip ? 0x00 : 0x08),
 		OLED_CMD2(SET_DISPLAY_CLK_DIV, 0x80),
 
-		OLED_CMD2(SET_COM_PIN_MAP, dev->height == 64 ? 0x12:  0x02),
+		OLED_CMD2(SET_COM_PIN_MAP, dev->h == 64 ? 0x12:  0x02),
 		OLED_CMD2(SET_VCOMH_DESELCT, 0x40),
 		OLED_CMD2(SET_CHARGE_PUMP, 0x14),
 		OLED_CMD2(SET_PRECHARGE, 0xf1),
@@ -791,7 +811,7 @@ void ssd1306_init_screen(ssd1306_int_t dev, const ssd1306_init_t ini)
 		OLED_CMD2(SET_MEMORY_ADDR_MODE, OLED_HORI_ADDR_MODE),
 
 #if !CONFIG_SSD1306_OPTIMIZE
-		OLED_CMD3(SET_COLUMN_RANGE, 0, dev->width-1),
+		OLED_CMD3(SET_COLUMN_RANGE, 0, dev->w-1),
 		OLED_CMD3(SET_PAGE_RANGE, 0, dev->pages-1),
 #endif
 
@@ -808,64 +828,32 @@ void ssd1306_init_screen(ssd1306_int_t dev, const ssd1306_init_t ini)
 
 bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size)
 {
+	uint16_t bounds_w = ssd1306_bounds_width(bounds);
+	uint16_t bounds_h = ssd1306_bounds_height(bounds);
+
 	if( size ) {
-		LOG_V("bounds %ux%u%+d%+d, size %ux%u", bounds->width, bounds->height, bounds->x, bounds->y, size->width, size->height);
+		LOG_V(">> bounds [%+d%+d, %+d%+d], size %ux%u",
+			bounds->x0, bounds->y0, bounds->x1, bounds->y1,
+			size->w, size->h);
 
-		bounds->width = minu(bounds->width, size->width);
-		bounds->height = minu(bounds->height, size->height);
+		bounds->x1 = bounds->x0 + minu(bounds_w, size->w);
+		bounds->y1 = bounds->y0 + minu(bounds_h, size->h);
 	} else {
-		LOG_V("bounds %ux%u%+d%+d", bounds->width, bounds->height, bounds->x, bounds->y);
+		LOG_V(">> bounds [%+d%+d, %+d%+d]",
+			bounds->x0, bounds->y0, bounds->x1, bounds->y1);
 	}
 
-	if( bounds->x < 0 ) {
-		unsigned h_shift = -bounds->x;
+	if( ssd1306_bounds_intersect(bounds, &device->bounds) ) {
+		LOG_V("<< bounds [%+d%+d, %+d%+d]",
+			bounds->x0, bounds->y0, bounds->x1, bounds->y1);
 
-		if( h_shift >= bounds->width ) {
-			LOG_V("bounds %ux%u%+d%+d not visible", bounds->width, bounds->height, bounds->x, bounds->y);
-
-			return false;
-		}
-
-		bounds->x = 0;
-		bounds->width -= h_shift;
-
-		LOG_V("bounds horizontally shifted by %d and shrunk to %u", h_shift, bounds->width);
-	} else if( bounds->x >= device->width ) {
-		LOG_V("bounds %ux%u%+d%+d not visible", bounds->width, bounds->height, bounds->x, bounds->y);
-
-		return NULL;
-	} else if( bounds->x + bounds->width > device->width ) {
-		bounds->width = device->width - bounds->x;
-
-		LOG_V("bounds horizontally shrunk to %u", bounds->width);
-	}
-
-	if( bounds->y < 0 ) {
-		unsigned v_shift = -bounds->y;
-
-		if( v_shift >= bounds->height ) {
-			LOG_V("bounds %ux%u%+d%+d not visible", bounds->width, bounds->height, bounds->x, bounds->y);
-
-			return false;
-		}
-
-		bounds->y = 0;
-		bounds->height -= v_shift;
-
-		LOG_V("bounds vertically shifted by %d and shrunk to %u", v_shift, bounds->height);
-	} else  if( bounds->y >= device->height ) {
-		LOG_V("bounds %ux%u%+d%+d not visible", bounds->width, bounds->height, bounds->x, bounds->y);
+		return true;
+	} else {
+		LOG_V("<< bounds not visible [%+d%+d, %+d%+d]",
+			bounds->x0, bounds->y0, bounds->x1, bounds->y1);
 
 		return false;
-	} else if( bounds->y + bounds->height > device->height ) {
-		bounds->height = device->height - bounds->y;
-
-		LOG_V("bounds vertically shrunk to %u", bounds->height);
 	}
-
-	LOG_D("trimmed %ux%u%+d%+d", bounds->width, bounds->height, bounds->x, bounds->y);
-
-	return true;
 }
 
 ssd1306_bitmap_t* ssd1306_create_bitmap(uint16_t width, uint16_t height)

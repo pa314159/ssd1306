@@ -28,12 +28,13 @@ typedef struct PACKED ssd1306_size_t {
 
 typedef struct PACKED ssd1306_bounds_t {
 	union {
-		struct ssd1306_point_t;
-		ssd1306_point_t origin;
-	};
-	union {
-		struct ssd1306_size_t;
-		ssd1306_size_t size;
+		struct {
+			ssd1306_point_t head;
+			ssd1306_point_t tail;
+		};
+		struct {
+			int16_t x0, y0, x1, y1;
+		};
 	};
 } ssd1306_bounds_t;
 
@@ -119,6 +120,11 @@ typedef struct PACKED ssd1306_s {
 		ssd1306_bounds_t bounds;
 	};
 
+	union {
+		struct ssd1306_size_t;
+		ssd1306_size_t size;
+	};
+
 	uint8_t pages;
 
 	const ssd1306_glyph_t* font;
@@ -155,6 +161,40 @@ ssd1306_bitmap_t* ssd1306_create_bitmap(uint16_t width, uint16_t height); // ret
 ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...);
 uint16_t ssd1306_text_width(ssd1306_t device, const char* text);
 
+// geometry
+bool ssd1306_bounds_empty(const ssd1306_bounds_t* source);
+void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
+bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
+
+inline uint16_t ssd1306_bounds_width(const ssd1306_bounds_t* bounds)
+{
+	return bounds->x1 - bounds->x0;
+}
+
+inline uint16_t ssd1306_bounds_height(const ssd1306_bounds_t* bounds)
+{
+	return bounds->y1 - bounds->y0;
+}
+
+inline void ssd1306_bounds_move_by(ssd1306_bounds_t* target, int16_t x, int16_t y)
+{
+	target->x0 += x;
+	target->x1 += x;
+	target->y0 += y;
+	target->y1 += y;
+}
+
+inline void ssd1306_bounds_move_to(ssd1306_bounds_t* target, int16_t x, int16_t y)
+{
+	const uint16_t w = ssd1306_bounds_width(target);
+	const uint16_t h = ssd1306_bounds_height(target);
+
+	target->x0 = x;
+	target->y0 = y;
+	target->x1 = x + w;
+	target->y1 = y + h;
+}
+
 // features
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
 void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
@@ -173,31 +213,31 @@ ssd1306_status_t ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status
 
 // others
 
-#define ssd1306_clear(device, _x, _y, _w, _h) \
+#define ssd1306_clear(device, x, y, w, h) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, width: _w, height: _h, \
+			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
 		}; \
 		ssd1306_clear_b(device, &b); \
 	} while( 0 )
-	#define ssd1306_draw(device, _x, _y, _w, _h, bitmap) \
+#define ssd1306_draw(device, x, y, w, h, bitmap) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, width: _w, height: _h, \
+			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
 		}; \
 		ssd1306_draw_b(device, &b, bitmap); \
 	} while( 0 )
-#define ssd1306_grab(device, _x, _y, _w, _h, bitmap) \
+#define ssd1306_grab(device, x, y, w, h, bitmap) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, width: _w, height: _h, \
+			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
 		}; \
 		ssd1306_grab_b(device, &b, bitmap); \
 	} while( 0 )
-#define ssd1306_text(device, _x, _y, _w, _h, text) \
+#define ssd1306_text(device, x, y, w, h, text) \
 	do { \
 		const ssd1306_bounds_t b = { \
-			x: _x, y: _y, width: _w, height: _h, \
+			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
 		}; \
 		ssd1306_text_b(device, &b, text); \
 	} while( 0 )

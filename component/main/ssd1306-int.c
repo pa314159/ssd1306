@@ -170,34 +170,3 @@ void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint
 			abort();
 	}
 }
-
-void ssd1306_extend_bounds(ssd1306_bounds_t* target, const ssd1306_bounds_t* source)
-{
-	if( target->width == 0 && target->height == 0 ) {
-		*target = *source;
-	} else {
-		const ssd1306_point_t t0 = target->origin;
-		const ssd1306_point_t t1 = {
-			x: target->x + target->width,
-			y: target->y + target->height,
-		};
-		const ssd1306_point_t s0 = source->origin;
-		const ssd1306_point_t s1 = {
-			x: source->x + source->width,
-			y: source->y + source->height,
-		};
-
-		if( s0.x < t0.x ) {
-			target->x = s0.x;
-		}
-		if( s1.x > t1.x ) {
-			target->width = s1.x - t0.x;
-		}
-		if( s0.y < t0.y ) {
-			target->y = s0.y;
-		}
-		if( s1.y > t1.y ) {
-			target->height = s1.y - t0.y;
-		}
-	}
-}

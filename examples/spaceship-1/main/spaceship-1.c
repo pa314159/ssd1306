@@ -31,20 +31,20 @@ inline int random_01()
 
 static void bouncing_bitmap(ssd1306_t device, bool with_status)
 {
-	const int x_min = 0;
-	const int x_max = device->width - SPACESHIP_W;
-	const int y_min = device->flip || !with_status ? 0 : 16;
-	const int y_max = device->height - SPACESHIP_H - (with_status ? 16 - y_min : 0);
+	const int16_t x_min = 0;
+	const int16_t x_max = device->width;
+	const int16_t y_min = device->flip || !with_status ? 0 : 16;
+	const int16_t y_max = device->height - (with_status ? 16 - y_min : 0);
 
 	ssd1306_bounds_t bounds = {
-		x: x_min + esp_random() % (x_max - x_min),
-		y: y_min + esp_random() % (y_max - y_min),
-		w: SPACESHIP_W,
-		h: SPACESHIP_H,
+		x1: SPACESHIP_W,
+		y1: SPACESHIP_H,
 	};
 
-	int speed_x = 1 - 2*random_01();
-	int speed_y = 1 - 2*random_01();
+	ssd1306_bounds_move_to(&bounds, x_min + esp_random() % (x_max - x_min), y_min + esp_random() % (y_max - y_min));
+
+	int16_t speed_x = 1 - 2*random_01();
+	int16_t speed_y = 1 - 2*random_01();
 
 	const uint64_t start = esp_timer_get_time();
 	uint64_t loops = 0;
@@ -58,16 +58,17 @@ static void bouncing_bitmap(ssd1306_t device, bool with_status)
 		ssd1306_auto_update(device, false);
 		ssd1306_clear_b(device, &bounds);
 
-		bounds.x += speed_x;
-		bounds.y += speed_y;
+		ssd1306_bounds_move_by(&bounds, speed_x, speed_y);
 
-		if( bounds.x < x_min || bounds.x >= x_max ) {
+		if( bounds.x0 < x_min || bounds.x1 > x_max ) {
 			speed_x = -signum_of(speed_x) * (1 + random_01());
-			bounds.x += speed_x;
+
+			ssd1306_bounds_move_by(&bounds, speed_x, 0);
 		}
-		if( bounds.y < y_min || bounds.y >= y_max ) {
+		if( bounds.y0 < y_min || bounds.y1 > y_max ) {
 			speed_y = -signum_of(speed_y) * (1 + random_01());
-			bounds.y += speed_y;
+
+			ssd1306_bounds_move_by(&bounds, 0, speed_y);
 		}
 
 		const uint64_t time_local = esp_timer_get_time();
@@ -80,8 +81,8 @@ static void bouncing_bitmap(ssd1306_t device, bool with_status)
 		const double time_average = (double)(time_local - start) / (++loops) / 1E3;
 
 		if( with_status ) {
-			ssd1306_status(device, ssd1306_status_0, "T \x07%7.3fs\x07 X \x07%3d", time_total, bounds.x);
-			ssd1306_status(device, ssd1306_status_1, "t \x07%6.2fms\x07 Y \x07%3d", time_average, bounds.y);
+			ssd1306_status(device, ssd1306_status_0, "T \x07%7.3fs\x07 X \x07%3d", time_total, (bounds.x0 + bounds.x1) / 2);
+			ssd1306_status(device, ssd1306_status_1, "t \x07%6.2fms\x07 Y \x07%3d", time_average, (bounds.y0 + bounds.y1) / 2);
 		}
 	}
 }

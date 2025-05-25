@@ -20,10 +20,7 @@ typedef struct PACKED status_info_t {
 } status_info_t;
 
 typedef struct ssd1306_int_s {
-	const union {
-		struct ssd1306_s;
-		struct ssd1306_s parent;
-	};
+	struct ssd1306_s;
 
 	const ssd1306_connection_t connection;
 
@@ -50,7 +47,6 @@ typedef struct ssd1306_int_s {
 
 void ssd1306_task(ssd1306_int_t dev);
 void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* buff, uint16_t size);
-void ssd1306_extend_bounds(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 
 inline uint16_t minu(uint16_t a, uint16_t b)
 {

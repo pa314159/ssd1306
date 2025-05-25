@@ -14,7 +14,7 @@ void app_main(void)
 
 	ssd1306_t device = ssd1306_init(ssd1306_create_init());
 
-	char* status0 = "the brown fox jumps over the lazy dog";
+	char status0[] = "the brown fox jumps over the lazy dog";
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
 	ssd1306_status(device, ssd1306_status_0, status0);
 
@@ -31,7 +31,7 @@ void app_main(void)
 	ssd1306_status(device, ssd1306_status_int, status0);
 
 	memset(status1, 0, sizeof(status1));
-	status1[0] = device->text_invert.on;
+	status1[0] = CONFIG_SSD1306_TEXT_INVERT;
 
 	for( unsigned k = 0; k < 16; k++ ) {
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(500));
