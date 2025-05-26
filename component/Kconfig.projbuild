@@ -53,6 +53,11 @@ menu "SSD1306 Configuration"
                 Panel is 128x64.
     endchoice
 
+    config SSD1306_PANEL_TYPE
+        int
+        default 0 if SSD1306_128x32
+        default 1 if SSD1306_128x64
+
     config SSD1306_WIDTH
         int
         default 128

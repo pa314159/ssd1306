@@ -10,7 +10,7 @@
 #define PAUSE_MILLIS      1500
 #define FRAME_MILLIS      100
 
-#if CONFIG_DEMO_DISPLAY0_TYPE + CONFIG_DEMO_DISPLAY1_TYPE == 0
+#if CONFIG_DISPLAY0_TYPE + CONFIG_DISPLAY1_TYPE == 0
 #error no display installed
 #endif
 
@@ -119,65 +119,67 @@ void run_demo(ssd1306_t device)
 void app_main(void)
 {
 	ssd1306_init_t init[2] = {
-#if CONFIG_DEMO_DISPLAY0_TYPE
-		ssd1306_create_init(CONFIG_DEMO_DISPLAY0_TYPE),
+#if CONFIG_DISPLAY0_TYPE
+		ssd1306_create_init(CONFIG_DISPLAY0_TYPE),
 #else
 		NULL,
 #endif
-#if CONFIG_DEMO_DISPLAY1_TYPE
-		ssd1306_create_init(CONFIG_DEMO_DISPLAY1_TYPE),
+#if CONFIG_DISPLAY1_TYPE
+		ssd1306_create_init(CONFIG_DISPLAY1_TYPE),
 #else
 		NULL,
 #endif
 	};
 
-#if CONFIG_DEMO_DISPLAY0_TYPE
-	init[0]->flip = CONFIG_DEMO_DISPLAY0_FLIP;
-	init[0]->invert = CONFIG_DEMO_DISPLAY0_INVERT;
-	init[0]->contrast = CONFIG_DEMO_DISPLAY0_CONTRAST;
+#if CONFIG_DISPLAY0_TYPE
+	init[0]->panel = CONFIG_DISPLAY0_TYPE;
+	init[0]->flip = CONFIG_DISPLAY0_FLIP;
+	init[0]->invert = CONFIG_DISPLAY0_INVERT;
+	init[0]->contrast = CONFIG_DISPLAY0_CONTRAST;
 #endif
-#if CONFIG_DEMO_DISPLAY0_IIC
-	init[0]->connection.address = CONFIG_DEMO_DISPLAY0_IIC_ADDRESS;
-	init[0]->connection.port = CONFIG_DEMO_DISPLAY0_IIC_PORT;
-	init[0]->connection.rst = CONFIG_DEMO_DISPLAY0_IIC_RST_PIN;
+#if CONFIG_DISPLAY0_IIC
+	init[0]->connection.address = CONFIG_DISPLAY0_IIC_ADDRESS;
+	init[0]->connection.port = CONFIG_DISPLAY0_IIC_PORT;
+	init[0]->connection.rst = CONFIG_DISPLAY0_IIC_RST_PIN;
 #endif
-#if CONFIG_DEMO_DISPLAY0_SPI
-	init[0]->connection.cs = CONFIG_DEMO_DISPLAY0_SPI_CS_PIN;
-	init[0]->connection.rst = CONFIG_DEMO_DISPLAY0_SPI_RST_PIN;
+#if CONFIG_DISPLAY0_SPI
+	init[0]->connection.cs = CONFIG_DISPLAY0_SPI_CS_PIN;
+	init[0]->connection.rst = CONFIG_DISPLAY0_SPI_RST_PIN;
 #endif
 
-#if CONFIG_DEMO_DISPLAY1_TYPE
-	init[1]->flip = CONFIG_DEMO_DISPLAY1_FLIP;
-	init[1]->invert = CONFIG_DEMO_DISPLAY1_INVERT;
-	init[1]->contrast = CONFIG_DEMO_DISPLAY1_CONTRAST;
+#if CONFIG_DISPLAY1_TYPE
+	init[0]->panel = CONFIG_DISPLAY1_TYPE;
+	init[1]->flip = CONFIG_DISPLAY1_FLIP;
+	init[1]->invert = CONFIG_DISPLAY1_INVERT;
+	init[1]->contrast = CONFIG_DISPLAY1_CONTRAST;
 #endif
-#if CONFIG_DEMO_DISPLAY1_IIC
-	init[1]->connection.address = CONFIG_DEMO_DISPLAY1_IIC_ADDRESS;
-	init[1]->connection.port = CONFIG_DEMO_DISPLAY1_IIC_PORT;
-	init[1]->connection.rst = CONFIG_DEMO_DISPLAY1_IIC_RST_PIN;
+#if CONFIG_DISPLAY1_IIC
+	init[1]->connection.address = CONFIG_DISPLAY1_IIC_ADDRESS;
+	init[1]->connection.port = CONFIG_DISPLAY1_IIC_PORT;
+	init[1]->connection.rst = CONFIG_DISPLAY1_IIC_RST_PIN;
 #endif
-#if CONFIG_DEMO_DISPLAY1_SPI
-	init[1]->connection.cs = CONFIG_DEMO_DISPLAY1_SPI_CS_PIN;
-	init[1]->connection.rst = CONFIG_DEMO_DISPLAY1_SPI_RST_PIN;
+#if CONFIG_DISPLAY1_SPI
+	init[1]->connection.cs = CONFIG_DISPLAY1_SPI_CS_PIN;
+	init[1]->connection.rst = CONFIG_DISPLAY1_SPI_RST_PIN;
 #endif
 
 	ssd1306_t devs[2] = {
-#if CONFIG_DEMO_DISPLAY0_TYPE
+#if CONFIG_DISPLAY0_TYPE
 		ssd1306_init(init[0]),
 #else
 		NULL,
 #endif
-#if CONFIG_DEMO_DISPLAY1_TYPE
+#if CONFIG_DISPLAY1_TYPE
 		ssd1306_init(init[1]),
 #else
 		NULL,
 #endif
 	};
 
-#if CONFIG_DEMO_DISPLAY0_TYPE
+#if CONFIG_DISPLAY0_TYPE
 	xTaskCreate((TaskFunction_t)run_demo, "task-0", 1024 * CONFIG_SSD1306_STACK_SIZE, (void*)devs[0], 1, NULL);
 #endif
-#if CONFIG_DEMO_DISPLAY1_TYPE
+#if CONFIG_DISPLAY1_TYPE
 	xTaskCreate((TaskFunction_t)run_demo, "task-1", 1024 * CONFIG_SSD1306_STACK_SIZE, (void*)devs[1], 1, NULL);
 #endif
 }

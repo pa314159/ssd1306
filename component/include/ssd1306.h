@@ -88,19 +88,20 @@ typedef struct PACKED ssd1306_connection_t {
 	uint16_t freq;
 } ssd1306_connection_t;
 
+typedef enum {
+	 ssd1406_128x32,
+	 ssd1406_128x64,
+} ssd1306_panel_t;
+
 typedef struct PACKED ssd1306_init_s {
 	struct PACKED {
+		ssd1306_panel_t panel:1;
 		bool flip;
 		bool invert;
 		bool free; // structure to be freed by ssd1306_init
 	};
 
 	uint8_t contrast;
-
-	const union {
-		struct ssd1306_size_t;
-		struct ssd1306_size_t size;
-	};
 
 	const ssd1306_glyph_t* const font;
 

@@ -4,71 +4,92 @@ menu "Demo App Configuration"
     menu "Display 0"
         choice
             prompt "Interface Type"
-            default DEMO_DISPLAY0_IIC
+            default DISPLAY0_IIC
             help
                 Select the interface type of display 0.
-            config DEMO_DISPLAY0_NIL
+            config DISPLAY0_NIL
                 bool "Not installed"
                 help
                     IIC Interface.
-            config DEMO_DISPLAY0_IIC
+            config DISPLAY0_IIC
                 bool "IIC Interface"
                 help
                     IIC Interface.
-            config DEMO_DISPLAY0_SPI
+            config DISPLAY0_SPI
                 bool "SPI Interface"
                 help
                     SPI Interface.
         endchoice
 
-        config DEMO_DISPLAY0_TYPE
+        config DISPLAY0_TYPE
             int
-            default 0 if DEMO_DISPLAY0_NIL
-            default 1 if DEMO_DISPLAY0_IIC
-            default 2 if DEMO_DISPLAY0_SPI
+            default 0 if DISPLAY0_NIL
+            default 1 if DISPLAY0_IIC
+            default 2 if DISPLAY0_SPI
 
-        config DEMO_DISPLAY0_FLIP_ON
-            depends on DEMO_DISPLAY0_IIC || DEMO_DISPLAY0_SPI
+        choice
+            depends on DISPLAY0_IIC || DISPLAY0_SPI
+            prompt "Panel Type"
+            default DISPLAY0_128x64
+            help
+                Select Panel Type.
+            config DISPLAY0_128x32
+                bool "128x32 Panel"
+                help
+                    Panel is 128x32.
+            config DISPLAY0_128x64
+                bool "128x64 Panel"
+                help
+                    Panel is 128x64.
+        endchoice
+
+        config DISPLAY0_PANEL_TYPE
+            int
+            default 0 if SSD1306_128x32
+            default 1 if SSD1306_128x64
+
+        config DISPLAY0_FLIP_ON
+            depends on DISPLAY0_IIC || DISPLAY0_SPI
             bool "Flip upside down"
             default false
             help
                 Flip upside down.
 
-        config DEMO_DISPLAY0_FLIP
+        config DISPLAY0_FLIP
             int
-            default 0 if !DEMO_DISPLAY0_FLIP_ON
-            default 1 if DEMO_DISPLAY0_FLIP_ON
+            default 0 if !DISPLAY0_FLIP_ON
+            default 1 if DISPLAY0_FLIP_ON
 
-        config DEMO_DISPLAY0_INVERT_ON
-            depends on DEMO_DISPLAY0_IIC || DEMO_DISPLAY0_SPI
+        config DISPLAY0_INVERT_ON
+            depends on DISPLAY0_IIC || DISPLAY0_SPI
             bool "Invert colors"
             default false
             help
                 Black is white and white is black.
 
-        config DEMO_DISPLAY0_INVERT
+        config DISPLAY0_INVERT
             int
-            default 0 if !DEMO_DISPLAY0_INVERT_ON
-            default 1 if DEMO_DISPLAY0_INVERT_ON
+            default 0 if !DISPLAY0_INVERT_ON
+            default 1 if DISPLAY0_INVERT_ON
 
-        config DEMO_DISPLAY0_CONTRAST
-            depends on DEMO_DISPLAY0_IIC || DEMO_DISPLAY0_SPI
+        config DISPLAY0_CONTRAST
+            depends on DISPLAY0_IIC || DISPLAY0_SPI
             int "Display contrast"
             range 0 255
             default 63
             help
                 Set the initial contrast of the display.
 
-        config DEMO_DISPLAY0_IIC_RST_PIN
-            depends on DEMO_DISPLAY0_IIC
+        config DISPLAY0_IIC_RST_PIN
+            depends on DISPLAY0_IIC
             int "RESET GPIO number"
             range -1 GPIO_RANGE_MAX
             default -1
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-        config DEMO_DISPLAY0_IIC_PORT
-            depends on DEMO_DISPLAY0_IIC
+        config DISPLAY0_IIC_PORT
+            depends on DISPLAY0_IIC
             int "IIC port that controls this bus"
             range 0 1
             default 0
@@ -76,23 +97,23 @@ menu "Demo App Configuration"
                 Select IIC port that controls this bus.
 
         choice
-            depends on DEMO_DISPLAY0_IIC
+            depends on DISPLAY0_IIC
             prompt "IIC address"
-            default DEMO_DISPLAY0_IIC_ADDRESS_3C
+            default DISPLAY0_IIC_ADDRESS_3C
 
-            config DEMO_DISPLAY0_IIC_ADDRESS_3C
+            config DISPLAY0_IIC_ADDRESS_3C
                 bool "0x3C"
-            config DEMO_DISPLAY0_IIC_ADDRESS_3D
+            config DISPLAY0_IIC_ADDRESS_3D
                 bool "0x3D"
         endchoice
 
-        config DEMO_DISPLAY0_IIC_ADDRESS
+        config DISPLAY0_IIC_ADDRESS
             int
-            default 60 if DEMO_DISPLAY0_IIC_ADDRESS_3C
-            default 61 if DEMO_DISPLAY0_IIC_ADDRESS_3D
+            default 60 if DISPLAY0_IIC_ADDRESS_3C
+            default 61 if DISPLAY0_IIC_ADDRESS_3D
 
-        config DEMO_DISPLAY0_SPI_RST_PIN
-            depends on DEMO_DISPLAY0_SPI
+        config DISPLAY0_SPI_RST_PIN
+            depends on DISPLAY0_SPI
             int "RESET GPIO number"
             range -1 GPIO_RANGE_MAX
             default 15 if IDF_TARGET_ESP32
@@ -101,8 +122,8 @@ menu "Demo App Configuration"
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-        config DEMO_DISPLAY0_SPI_CS_PIN
-            depends on DEMO_DISPLAY0_SPI
+        config DISPLAY0_SPI_CS_PIN
+            depends on DISPLAY0_SPI
             int "CS GPIO number"
             default  5 if IDF_TARGET_ESP32
             default 34 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
@@ -114,71 +135,92 @@ menu "Demo App Configuration"
     menu "Display 1"
         choice
             prompt "Interface Type"
-            default DEMO_DISPLAY1_NIL
+            default DISPLAY1_NIL
             help
                 Select the interface type of display 0.
-            config DEMO_DISPLAY1_NIL
+            config DISPLAY1_NIL
                 bool "Not installed"
                 help
                     IIC Interface.
-            config DEMO_DISPLAY1_IIC
+            config DISPLAY1_IIC
                 bool "IIC Interface"
                 help
                     IIC Interface.
-            config DEMO_DISPLAY1_SPI
+            config DISPLAY1_SPI
                 bool "SPI Interface"
                 help
                     SPI Interface.
         endchoice
 
-        config DEMO_DISPLAY1_FLIP_ON
-            depends on DEMO_DISPLAY1_IIC || DEMO_DISPLAY1_SPI
+        choice
+            depends on DISPLAY1_IIC || DISPLAY1_SPI
+            prompt "Panel Type"
+            default DISPLAY1_128x64
+            help
+                Select Panel Type.
+            config DISPLAY1_128x32
+                bool "128x32 Panel"
+                help
+                    Panel is 128x32.
+            config DISPLAY1_128x64
+                bool "128x64 Panel"
+                help
+                    Panel is 128x64.
+        endchoice
+
+        config DISPLAY1_PANEL_TYPE
+            int
+            default 0 if SSD1306_128x32
+            default 1 if SSD1306_128x64
+
+        config DISPLAY1_FLIP_ON
+            depends on DISPLAY1_IIC || DISPLAY1_SPI
             bool "Flip upside down"
             default false
             help
                 Flip upside down.
 
-        config DEMO_DISPLAY1_FLIP
+        config DISPLAY1_FLIP
             int
-            default 0 if !DEMO_DISPLAY1_FLIP_ON
-            default 1 if DEMO_DISPLAY1_FLIP_ON
+            default 0 if !DISPLAY1_FLIP_ON
+            default 1 if DISPLAY1_FLIP_ON
 
-        config DEMO_DISPLAY1_INVERT_ON
-            depends on DEMO_DISPLAY1_IIC || DEMO_DISPLAY1_SPI
+        config DISPLAY1_INVERT_ON
+            depends on DISPLAY1_IIC || DISPLAY1_SPI
             bool "Invert colors"
             default false
             help
                 Black is white and white is black.
 
-        config DEMO_DISPLAY1_INVERT
+        config DISPLAY1_INVERT
             int
-            default 0 if !DEMO_DISPLAY1_INVERT_ON
-            default 1 if DEMO_DISPLAY1_INVERT_ON
+            default 0 if !DISPLAY1_INVERT_ON
+            default 1 if DISPLAY1_INVERT_ON
 
-        config DEMO_DISPLAY1_CONTRAST
-            depends on DEMO_DISPLAY1_IIC || DEMO_DISPLAY1_SPI
+        config DISPLAY1_CONTRAST
+            depends on DISPLAY1_IIC || DISPLAY1_SPI
             int "Display contrast"
             range 0 255
             default 63
             help
                 Set the initial contrast of the display.
 
-        config DEMO_DISPLAY1_TYPE
+        config DISPLAY1_TYPE
             int
-            default 0 if DEMO_DISPLAY1_NIL
-            default 1 if DEMO_DISPLAY1_IIC
-            default 2 if DEMO_DISPLAY1_SPI
+            default 0 if DISPLAY1_NIL
+            default 1 if DISPLAY1_IIC
+            default 2 if DISPLAY1_SPI
 
-        config DEMO_DISPLAY1_IIC_RST_PIN
-            depends on DEMO_DISPLAY1_IIC
+        config DISPLAY1_IIC_RST_PIN
+            depends on DISPLAY1_IIC
             int "RESET GPIO number"
             range -1 GPIO_RANGE_MAX
             default -1
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-        config DEMO_DISPLAY1_IIC_PORT
-            depends on DEMO_DISPLAY1_IIC
+        config DISPLAY1_IIC_PORT
+            depends on DISPLAY1_IIC
             int "IIC port that controls this bus"
             range 0 1
             default 0
@@ -186,23 +228,23 @@ menu "Demo App Configuration"
                 Select IIC port that controls this bus.
 
         choice
-            depends on DEMO_DISPLAY1_IIC
+            depends on DISPLAY1_IIC
             prompt "IIC address"
-            default DEMO_DISPLAY1_IIC_ADDRESS_3C
+            default DISPLAY1_IIC_ADDRESS_3C
 
-            config DEMO_DISPLAY1_IIC_ADDRESS_3C
+            config DISPLAY1_IIC_ADDRESS_3C
                 bool "0x3C"
-            config DEMO_DISPLAY1_IIC_ADDRESS_3D
+            config DISPLAY1_IIC_ADDRESS_3D
                 bool "0x3D"
         endchoice
 
-        config DEMO_DISPLAY1_IIC_ADDRESS
+        config DISPLAY1_IIC_ADDRESS
             int
-            default 60 if DEMO_DISPLAY1_IIC_ADDRESS_3C
-            default 61 if DEMO_DISPLAY1_IIC_ADDRESS_3D
+            default 60 if DISPLAY1_IIC_ADDRESS_3C
+            default 61 if DISPLAY1_IIC_ADDRESS_3D
 
-        config DEMO_DISPLAY1_SPI_RST_PIN
-            depends on DEMO_DISPLAY1_SPI
+        config DISPLAY1_SPI_RST_PIN
+            depends on DISPLAY1_SPI
             int "RESET GPIO number"
             range -1 GPIO_RANGE_MAX
             default 15 if IDF_TARGET_ESP32
@@ -211,8 +253,8 @@ menu "Demo App Configuration"
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
-        config DEMO_DISPLAY1_SPI_CS_PIN
-            depends on DEMO_DISPLAY1_SPI
+        config DISPLAY1_SPI_CS_PIN
+            depends on DISPLAY1_SPI
             int "CS GPIO number"
             default  5 if IDF_TARGET_ESP32
             default 34 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3

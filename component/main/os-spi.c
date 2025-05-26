@@ -15,11 +15,9 @@ static const ssd1306_init_s init_default = {
 	invert: true,
 #endif
 	free: true,
+	panel: (ssd1306_panel_t)CONFIG_SSD1306_PANEL_TYPE,
 
 	contrast: CONFIG_SSD1306_CONTRAST,
-
-	width: CONFIG_SSD1306_WIDTH,
-	height: CONFIG_SSD1306_HEIGHT,
 
 	font: ssd1306_default_font,
 

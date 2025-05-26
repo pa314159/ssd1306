@@ -64,8 +64,8 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	}
 
 	// allocate additional bytes for internal buffer and raster
-	const uint8_t pages = bytes_cap(init->h);
-	const size_t total = sizeof(ssd1306_int_s) + pages*init->w;
+	const uint8_t pages = 4 * ((int)init->panel + 1);
+	const size_t total = sizeof(ssd1306_int_s) + pages * CONFIG_SSD1306_WIDTH;
 
 	ssd1306_int_t dev = calloc(1, total);
 
@@ -793,9 +793,8 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 void ssd1306_init_private(ssd1306_int_t dev, const ssd1306_init_t ini, uint8_t pages)
 {
 	dev->flip = ini->flip;
-	dev->x1 = ini->w;
-	dev->y1 = ini->h;
-	dev->size = ini->size;
+	dev->x1 = dev->size.w = CONFIG_SSD1306_WIDTH;
+	dev->y1 = dev->size.h = pages * SSD1306_PAGE_HEIGHT;
 	dev->pages = pages;
 	dev->font = ini->font;
 	
