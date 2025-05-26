@@ -12,10 +12,10 @@ typedef enum {
 } anim_state_t;
 
 typedef struct PACKED status_info_t {
+	const ssd1306_bounds_t;
 	anim_state_t state;
 	ssd1306_bitmap_t* bitmap;
 	TickType_t ticks;
-	uint8_t page;
 	int16_t offset;
 } status_info_t;
 
@@ -30,11 +30,11 @@ typedef struct ssd1306_int_s {
 	};
 
 	bool volatile active;
-	unsigned no_update;
+	int16_t defer_update;
 
 #if CONFIG_SSD1306_OPTIMIZE
 	QueueHandle_t queue;
-	ssd1306_bounds_t dirty_bounds;
+	ssd1306_bounds_t* dirty_bounds;
 #else
 	TaskHandle_t task;
 #endif
@@ -76,4 +76,13 @@ inline uint8_t set_bits(int8_t bits)
 inline unsigned bytes_cap(uint8_t bits)
 {
 	return bits / 8 + (bits % 8 ? 1 : 0);
+}
+
+inline uint16_t ssd1306_status_index(ssd1306_int_t dev, ssd1306_status_t status)
+{
+	if( status <= ssd1306_status_1 ) {
+		return status;
+	}
+
+	return dev->flip ? 1 - ((int)status - (int)ssd1306_status_ext) : (int)status - (int)ssd1306_status_ext;
 }

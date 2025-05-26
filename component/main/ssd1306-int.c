@@ -11,8 +11,8 @@
 
 static void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds);
 
-static const status_info_t* update_status(ssd1306_int_t dev, uint8_t index);
-static void move_status(ssd1306_int_t dev, status_info_t* status);
+static const status_info_t* update_status(ssd1306_int_t dev, uint8_t index, ssd1306_bounds_t* bounds);
+static void move_status(ssd1306_int_t dev, status_info_t* status, ssd1306_bounds_t* bounds);
 
 inline bool is_move(const status_info_t* status)
 {
@@ -28,7 +28,7 @@ void ssd1306_task(ssd1306_int_t dev)
 	TickType_t delay = portMAX_DELAY;
 
 	while( dev->active ) {
-		ssd1306_bounds_t bounds = {};
+		ssd1306_bounds_t bounds = dev->bounds;
 
 #if CONFIG_SSD1306_OPTIMIZE
 		bool notified = xQueueReceive(dev->queue, &bounds, delay);
@@ -36,8 +36,8 @@ void ssd1306_task(ssd1306_int_t dev)
 		bool notified = ulTaskNotifyTake(pdTRUE, delay);
 #endif
 		if( xSemaphoreTake(dev->mutex, portMAX_DELAY) ) {
-			const status_info_t* s0 = update_status(dev, 0);
-			const status_info_t* s1 = update_status(dev, 1);
+			const status_info_t* s0 = update_status(dev, 0, &bounds);
+			const status_info_t* s1 = update_status(dev, 1, &bounds);
 
 			delay = (s0 || s1) ? SCREEN_SCROLL_TICKS : portMAX_DELAY;
 
@@ -52,16 +52,18 @@ void ssd1306_task(ssd1306_int_t dev)
 
 void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 {
+#if CONFIG_SSD1306_OPTIMIZE
+	const uint16_t x0 = bounds->x0;
+	const uint16_t x1 = bounds->x1;
+	const uint16_t p0 = bounds->y0 / 8;
+	const uint16_t p1 = bounds->y1 / 8 + (bounds->y1 % 8 ? 1 : 0);
+
+	LOG_D("x0 = %u, x1 = %u, p0 = %u, p1 = %u", x0, x1, p0, p1);
+#endif
+
 	const uint64_t start = esp_timer_get_time();
 
 #if CONFIG_SSD1306_OPTIMIZE
- 	const uint16_t x0 = bounds->x0;
-	const uint16_t x1 = bounds->x1;
-	const uint16_t p0 = bounds->y0 / 8;
-	const uint16_t p1 = bounds->y1 / 8;
-
-	LOG_D("x0 = %u, x1 = %u, p0 = %u, p1 = %u", x0, x1, p0, p1);
-
 	const uint8_t data[] = {
 		OLED_CMD_SET_COLUMN_RANGE, x0, x1 - 1,
 		OLED_CMD_SET_PAGE_RANGE, p0, p1 - 1,
@@ -74,14 +76,16 @@ void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 
 		ssd1306_send_buff(dev, OLED_CTL_DATA, buff + x0, x1 - x0);
 	}
+
+	LOG_D("region updated in %u \u03BCs", esp_timer_get_time()-start);
 #else
 	ssd1306_send_buff(dev, OLED_CTL_DATA, dev->buff, dev->width * dev->pages);
-#endif
 
-	LOG_D("ended after %u \u03BCs", esp_timer_get_time()-start);
+	LOG_D("full region updated in %u \u03BCs", esp_timer_get_time()-start);
+#endif
 }
 
-const status_info_t* update_status(ssd1306_int_t dev, uint8_t index)
+const status_info_t* update_status(ssd1306_int_t dev, uint8_t index, ssd1306_bounds_t* bounds)
 {
 	status_info_t* status = dev->statuses + index;
 
@@ -115,7 +119,7 @@ const status_info_t* update_status(ssd1306_int_t dev, uint8_t index)
 		case anim_move: {
 			// LOG_V("state = anim_move, offset = %d", status->offset);
 
-			move_status(dev, status);
+			move_status(dev, status, bounds);
 
 			if( status->offset == 0 ) {
 				status->ticks = xTaskGetTickCount();
@@ -128,7 +132,7 @@ const status_info_t* update_status(ssd1306_int_t dev, uint8_t index)
 	return status;
 }
 
-void move_status(ssd1306_int_t dev, status_info_t* status)
+void move_status(ssd1306_int_t dev, status_info_t* status, ssd1306_bounds_t* bounds)
 {
 	int16_t offset = --status->offset;
 
@@ -136,7 +140,7 @@ void move_status(ssd1306_int_t dev, status_info_t* status)
 		offset = status->offset = 0;
 	}
 
-	uint8_t* buff = ssd1306_raster((ssd1306_t)dev, status->page);
+	uint8_t* buff = ssd1306_raster((ssd1306_t)dev, status->y0 / 8);
 
 	memset(buff, 0, dev->width);
 
@@ -151,6 +155,8 @@ void move_status(ssd1306_int_t dev, status_info_t* status)
 	} else {
 		memcpy(buff + offset, status->bitmap->image, dev->width - offset);
 	}
+
+	ssd1306_bounds_union(bounds, (ssd1306_bounds_t*)status);
 }
 
 void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)

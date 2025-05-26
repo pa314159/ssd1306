@@ -89,8 +89,6 @@ typedef struct PACKED ssd1306_connection_t {
 } ssd1306_connection_t;
 
 typedef struct PACKED ssd1306_init_s {
-	uint8_t id;
-
 	struct PACKED {
 		bool flip;
 		bool invert;
@@ -211,7 +209,7 @@ typedef enum {
 } ssd1306_status_t;
 
 void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);
-ssd1306_status_t ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status, ssd1306_bounds_t* bounds);
+const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status);
 
 // others
 

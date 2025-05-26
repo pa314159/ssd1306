@@ -31,7 +31,7 @@ void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* sour
 	if( source->x1 > target->x1 ) {
 		target->x1 = source->x1;
 	}
-	if( source->y1 < target->y1 ) {
+	if( source->y1 > target->y1 ) {
 		target->y1 = source->y1;
 	}
 }

@@ -15,23 +15,23 @@ void app_main(void)
 	TickType_t ticks = xTaskGetTickCount();
 	ssd1306_t device = ssd1306_init(NULL);
 
-	// ssd1306_bounds_t bounds0;
-	// ssd1306_bounds_t bounds1;
+	ssd1306_bounds_t bounds0;
+	ssd1306_bounds_t bounds1;
 
-	// ssd1306_status_bounds(device, ssd1306_status_0, &bounds0);
-	// ssd1306_status_bounds(device, ssd1306_status_1, &bounds1);
+	ssd1306_status_bounds(device, ssd1306_status_0, &bounds0);
+	ssd1306_status_bounds(device, ssd1306_status_1, &bounds1);
 
-	// const char* status0 = "initialised...";
-	// const char* status1 = "restarting in %+d seconds...";
+	const char* status0 = "initialised...";
+	const char* status1 = "restarting in %+d seconds...";
 
-	// vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
-	// ssd1306_text_b(device, &bounds0, status0);
+	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
+	ssd1306_text_b(device, &bounds0, status0);
 
-	// for( int k = 9; k > 0; k-- ) {
-	// 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
-	// 	ssd1306_text_b(device, &bounds1, status1, k);
-	// }
+	for( int k = 9; k >= 0; k-- ) {
+		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
+		ssd1306_text_b(device, &bounds1, status1, k);
+		
+	}
 
-	// vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
-	// esp_restart();
+	esp_restart();
 }

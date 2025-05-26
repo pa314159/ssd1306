@@ -66,8 +66,6 @@ void ssd1306_log(uint8_t level, const char* function, int line, const char* form
 	} while( 0 )
 #define ABORT_IF_NULL(param) ABORT_IF(param == NULL, "parameter '" #param "' is NULL")
 
-extern int esp_log_level_get_timeout(const char*);
-
 #if 0
 void ssd1306_iic_free(ssd1306_iic_t dev);
 void ssd1306_spi_free(ssd1306_spi_t dev);

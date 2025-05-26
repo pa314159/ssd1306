@@ -8,6 +8,7 @@
 #include <ctype.h>
 
 static void ssd1306_init_private(ssd1306_int_t dev, const ssd1306_init_t init, uint8_t pages);
+static void ssd1306_init_status(ssd1306_int_t dev, ssd1306_status_t status);
 static void ssd1306_init_screen(ssd1306_int_t dev, const ssd1306_init_t ini);
 static void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed);
 static void ssd1306_mask_page(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, uint8_t mask);
@@ -52,11 +53,11 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 {
 	ssd1306_log_set_level(CONFIG_SSD1306_LOGGING_LEVEL);
 
-	LOG_E("LOG_ERROR");
-	LOG_W("LOG_WARN");
-	LOG_I("LOG_INFO");
-	LOG_D("LOG_DEBUG");
-	LOG_V("LOG_VERBOSE");
+	LOG_E("LOG_E is active");
+	LOG_W("LOG_W is active");
+	LOG_I("LOG_I is active");
+	LOG_D("LOG_D is active");
+	LOG_V("LOG_V is active");
 
 	if( init == NULL ) {
 		init = ssd1306_create_init(ssd1306_interface_any);
@@ -71,6 +72,8 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	ABORT_IF(dev == NULL, "cannot allocate memory for ssd1306_t");
 
 	ssd1306_init_private(dev, init, pages);
+	ssd1306_init_status(dev, ssd1306_status_0);
+	ssd1306_init_status(dev, ssd1306_status_1);
 
 	LOG_I("Allocated %u bytes at %p", total, dev);
 
@@ -131,16 +134,18 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		vTaskDelay(SSD1306_SEM_TICKS);
 	}
 
+	if( init->free ) {
+		free(init);
+	}
+
+#if CONFIG_SSD1306_OPTIMIZE || !CONFIG_SSD1306_SPLASH
 	ssd1306_update((ssd1306_t)dev, NULL);
+#endif
 
 #if CONFIG_SSD1306_SPLASH > 0
 	ssd1306_draw((ssd1306_t)dev, (dev->w - splash_bmp->w) / 2, (dev->h - splash_bmp->h) / 2, splash_bmp->w, splash_bmp->h, splash_bmp);
 	vTaskDelay(pdMS_TO_TICKS(CONFIG_SSD1306_SPLASH));
 #endif
-
-	if( init->free ) {
-		free(init);
-	}
 
 	return (ssd1306_t)dev;
 }
@@ -192,20 +197,48 @@ void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
+	ABORT_IF(dev->defer_update < 0, "unbalanced auto update value (%+d)", dev->defer_update);
 #if CONFIG_SSD1306_OPTIMIZE
-	if( dev->no_update ) {
-		if( bounds ) {
-			ssd1306_bounds_union(&dev->dirty_bounds, bounds);
+	if( dev->defer_update ) {
+		ABORT_IF(bounds == NULL, "defer_update is %u, bounds cannot be NULL");
+
+		if( dev->dirty_bounds ) {
+			ssd1306_bounds_union(dev->dirty_bounds, bounds);
+		} else {
+			dev->dirty_bounds = malloc(sizeof(ssd1306_bounds_t));
+
+			*dev->dirty_bounds = *bounds;
 		}
+
+		LOG_D("dirty bounds [%+d%+d, %+d%+d]", 
+			dev->dirty_bounds->x0, dev->dirty_bounds->y0,
+			dev->dirty_bounds->x1, dev->dirty_bounds->y1);
 	} else {
 #else
-	if( dev->no_update == 0 ) {
+	if( dev->defer_update == 0 ) {
 #endif
 #if CONFIG_SSD1306_OPTIMIZE
 		if( bounds ) {
+			LOG_D("enqueue bounds [%+d%+d, %+d%+d]",
+				bounds->x0, bounds->y0, bounds->x1, bounds->y1);
+
 			xQueueSend(dev->queue, bounds, portMAX_DELAY);
+		} else if( dev->dirty_bounds ) {
+			LOG_D("enqueue dirty bounds [%+d%+d, %+d%+d]",
+				dev->dirty_bounds->x0, dev->dirty_bounds->y0,
+				dev->dirty_bounds->x1, dev->dirty_bounds->y1);
+
+			xQueueSend(dev->queue, dev->dirty_bounds, portMAX_DELAY);
+
+			free(dev->dirty_bounds);
+
+			dev->dirty_bounds = NULL;
 		} else {
-			xQueueSend(dev->queue, &device->bounds, portMAX_DELAY);
+			LOG_D("enqueue device bounds [%+d%+d, %+d%+d]",
+				dev->bounds.x0, dev->bounds.y0,
+				dev->bounds.x1, dev->bounds.y1);
+
+			xQueueSend(dev->queue, &dev->bounds, portMAX_DELAY);
 		}
 #else
 		xTaskNotifyGive(dev->task);
@@ -219,18 +252,11 @@ void ssd1306_auto_update(ssd1306_t device, bool on)
 
 	ssd1306_int_t const dev = (ssd1306_int_t)device;
 
-	dev->no_update += on ? -1 : +1;
+	dev->defer_update += on ? -1 : +1;
 
-#if CONFIG_SSD1306_OPTIMIZE
-	if( !on && dev->no_update == 1 ) {
-		dev->dirty_bounds.x0 = dev->dirty_bounds.y0 = 0x7fff;
-		dev->dirty_bounds.x1 = dev->dirty_bounds.y1 = 0xffff;
+	if( dev->defer_update == 0 ) {
+		ssd1306_update(device, NULL);
 	}
-
-	ssd1306_update(device, &dev->dirty_bounds);
-#else
-	ssd1306_update(device, NULL);
-#endif
 }
 
 uint8_t* ssd1306_raster(ssd1306_t device, uint8_t page)
@@ -707,6 +733,14 @@ void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char
 	va_end(args);
 }
 
+const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status)
+{
+	ssd1306_int_t dev = (ssd1306_int_t)device;
+	uint16_t index = ssd1306_status_index(dev, status);
+
+	return (ssd1306_bounds_t*)&dev->statuses[index];
+}
+
 void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...)
 {
 	if( !ssd1306_acquire(device) ) {
@@ -715,20 +749,19 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		return;
 	}
 
-	ssd1306_bounds_t bounds;
-
-	status = ssd1306_status_bounds(device, status, &bounds);
-
 	ssd1306_int_t dev = (ssd1306_int_t)device;
-	status_info_t* anim = &dev->statuses[status];
+	const uint16_t index = ssd1306_status_index(dev, status);
+	status_info_t* si = &dev->statuses[status];
 
-	if( anim->bitmap ) {
-		free(anim->bitmap);
+	if( si->bitmap ) {
+		free(si->bitmap);
 
-		anim->bitmap = NULL;
+		si->bitmap = NULL;
 	}
 
-	ssd1306_clear_internal(device, &bounds, &bounds);
+	const ssd1306_bounds_t* bounds = (ssd1306_bounds_t*)&dev->statuses[index];
+
+	ssd1306_clear_internal(device, bounds, bounds);
 
 	if( format ) {
 		ssd1306_bitmap_t* bitmap;
@@ -738,16 +771,14 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		bitmap = ssd1306_text_bitmapv(device, format, args);
 		va_end(args);
 
-		ssd1306_bounds_t trimmed = bounds;
+		ssd1306_bounds_t trimmed = *bounds;
 
 		ssd1306_trim(device, &trimmed, &bitmap->size);
-		ssd1306_draw_internal(device, &bounds, &trimmed, bitmap);
-		ssd1306_update(device, &bounds);
+		ssd1306_draw_internal(device, bounds, &trimmed, bitmap);
 
 		if( bitmap->w > device->w ) {
-			anim->bitmap = bitmap;
-			anim->page = bounds.y0 / 8;
-			anim->state = anim_init;
+			si->bitmap = bitmap;
+			si->state = anim_init;
 
 			LOG_D("text will scroll in background");
 		} else {
@@ -755,28 +786,12 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		}
 	}
 
+	ssd1306_update(device, bounds);
 	ssd1306_release(device);
-}
-
-ssd1306_status_t ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status, ssd1306_bounds_t* bounds)
-{
-	if( status > ssd1306_status_1 ) {
-		status = device->flip ? 1 - ((int)status - (int)ssd1306_status_ext) : (int)status - (int)ssd1306_status_ext;
-	}
-
-	bounds->x0 = 0;
-	bounds->y0 = device->flip ? device->h - SSD1306_TEXT_HEIGHT * (2-status) : SSD1306_TEXT_HEIGHT * status;
-	bounds->x1 = device->w;
-	bounds->y1 = bounds->y0 + SSD1306_TEXT_HEIGHT;
-
-	LOG_V("status %d, bounds [%+d%+d, %+d%+d]", status, bounds->x0, bounds->y0, bounds->x1, bounds->y1);
-
-	return status;
 }
 
 void ssd1306_init_private(ssd1306_int_t dev, const ssd1306_init_t ini, uint8_t pages)
 {
-	dev->id = ini->id;
 	dev->flip = ini->flip;
 	dev->x1 = ini->w;
 	dev->y1 = ini->h;
@@ -785,6 +800,17 @@ void ssd1306_init_private(ssd1306_int_t dev, const ssd1306_init_t ini, uint8_t p
 	dev->font = ini->font;
 	
 	memcpy((void*)&dev->connection, &ini->connection, sizeof(dev->connection));
+}
+
+void ssd1306_init_status(ssd1306_int_t dev, ssd1306_status_t status)
+{
+	uint16_t index = ssd1306_status_index(dev, status);
+	ssd1306_bounds_t* bounds = (ssd1306_bounds_t*)&dev->statuses[index];
+
+	bounds->x0 = 0;
+	bounds->y0 = dev->flip ? dev->h - SSD1306_TEXT_HEIGHT * (2-index) : SSD1306_TEXT_HEIGHT * index;
+	bounds->x1 = dev->w;
+	bounds->y1 = bounds->y0 + SSD1306_TEXT_HEIGHT;
 }
 
 void ssd1306_init_screen(ssd1306_int_t dev, const ssd1306_init_t ini)

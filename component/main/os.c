@@ -3,6 +3,7 @@
 
 #include "ssd1306-int.h"
 
+#include <esp_log.h>
 #include <esp_log_color.h>
 
 const char LOG_DOMAIN[] = "SSD1306";
@@ -14,7 +15,7 @@ void ssd1306_log_set_level(uint8_t level)
 
 uint8_t ssd1306_log_get_level()
 {
-	return esp_log_level_get_timeout(LOG_DOMAIN);
+	return esp_log_level_get(LOG_DOMAIN);
 }
 
 void ssd1306_log(uint8_t level, const char* function, int line, const char* format, ...)
