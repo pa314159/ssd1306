@@ -15,7 +15,7 @@ extern "C" {
 
 #include <esp_check.h>
 
-#include "dump.h"
+#include "ssd1306-dump.h"
 
 #define SSD1306_RST_TIMEOUT 100
 #define SSD1306_SEM_TIMEOUT 500

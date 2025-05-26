@@ -93,6 +93,13 @@ typedef enum {
 	 ssd1406_128x64,
 } ssd1306_panel_t;
 
+typedef enum {
+	ssd1306_status_0,
+	ssd1306_status_1,
+	ssd1306_status_ext, // the external status line - the line that's Close To The Edge, YES ;)
+	ssd1306_status_int, // the internal status line
+} ssd1306_status_t;
+
 typedef struct PACKED ssd1306_init_s {
 	struct PACKED {
 		ssd1306_panel_t panel:1;
@@ -163,7 +170,6 @@ ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...)
 uint16_t ssd1306_text_width(ssd1306_t device, const char* text);
 
 // geometry
-// bool ssd1306_bounds_empty(const ssd1306_bounds_t* source);
 void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 
@@ -198,50 +204,46 @@ inline void ssd1306_bounds_move_to(ssd1306_bounds_t* target, int16_t x, int16_t 
 
 // features
 void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds);
-void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
-void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap);
-void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* format, ...);
+inline void ssd1306_clear(ssd1306_t device, int16_t x, int16_t y, uint16_t width, uint16_t height)
+{
+	const ssd1306_bounds_t bounds = {
+		x0: x, y0: y, x1: x + width, y1: y + width,
+	};
+	ssd1306_clear_b(device, &bounds);
+}
 
-typedef enum {
-	ssd1306_status_0,
-	ssd1306_status_1,
-	ssd1306_status_ext, // the external status line - the line that's Close To The Edge, YES ;)
-	ssd1306_status_int, // the internal status line
-} ssd1306_status_t;
+void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
+void ssd1306_draw_c(ssd1306_t device, const ssd1306_bitmap_t* bitmap);
+inline void ssd1306_draw(ssd1306_t device, int16_t x, int16_t y, uint16_t width, uint16_t height, const ssd1306_bitmap_t* bitmap)
+{
+	const ssd1306_bounds_t bounds = {
+		x0: x, y0: y, x1: x + width, y1: y + width,
+	};
+	ssd1306_draw_b(device, &bounds, bitmap);
+}
+
+void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap);
+void ssd1306_grab_c(ssd1306_t device, ssd1306_bitmap_t* bitmap);
+inline void ssd1306_grab(ssd1306_t device, int16_t x, int16_t y, uint16_t width, uint16_t height, ssd1306_bitmap_t* bitmap)
+{
+	const ssd1306_bounds_t bounds = {
+		x0: x, y0: y, x1: x + width, y1: y + width,
+	};
+	ssd1306_grab_b(device, &bounds, bitmap);
+}
+
+void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* format, ...);
+inline void ssd1306_text(ssd1306_t device, int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text)
+{
+	const ssd1306_bounds_t bounds = {
+		x0: x, y0: y, x1: x + width, y1: y + width,
+	};
+	ssd1306_text_b(device, &bounds, "%s", text);
+}
 
 void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);
 const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status);
-
-// others
-
-#define ssd1306_clear(device, x, y, w, h) \
-	do { \
-		const ssd1306_bounds_t b = { \
-			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
-		}; \
-		ssd1306_clear_b(device, &b); \
-	} while( 0 )
-#define ssd1306_draw(device, x, y, w, h, bitmap) \
-	do { \
-		const ssd1306_bounds_t b = { \
-			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
-		}; \
-		ssd1306_draw_b(device, &b, bitmap); \
-	} while( 0 )
-#define ssd1306_grab(device, x, y, w, h, bitmap) \
-	do { \
-		const ssd1306_bounds_t b = { \
-			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
-		}; \
-		ssd1306_grab_b(device, &b, bitmap); \
-	} while( 0 )
-#define ssd1306_text(device, x, y, w, h, text) \
-	do { \
-		const ssd1306_bounds_t b = { \
-			x0: (x), y0: (y), x1: (x) + (w), y1: (y) + (h), \
-		}; \
-		ssd1306_text_b(device, &b, text); \
-	} while( 0 )
+void ssd1306_center_bounds(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap);
 
 #if defined(__cplusplus)
 }

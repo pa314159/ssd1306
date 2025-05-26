@@ -47,6 +47,11 @@ typedef struct ssd1306_int_s {
 
 void ssd1306_task(ssd1306_int_t dev);
 void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* buff, uint16_t size);
+bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size);
+
+void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed);
+void ssd1306_draw_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed, const ssd1306_bitmap_t* bitmap);
+void ssd1306_grab_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed, ssd1306_bitmap_t* bitmap);
 
 inline uint16_t minu(uint16_t a, uint16_t b)
 {

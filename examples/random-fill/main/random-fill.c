@@ -2,13 +2,13 @@
 
 #include <stdio.h>
 #include <ssd1306.h>
+#include <ssd1306-misc.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_random.h>
 
 #define PAUSE_MILLIS      1500
-#define FRAME_MILLIS      100
+#define FRAME_MILLIS      50
 
 #if CONFIG_DISPLAY0_TYPE + CONFIG_DISPLAY1_TYPE == 0
 #error no display installed
@@ -17,16 +17,6 @@
 inline int mini(int a, int b)
 {
 	return a < b ? a : b;
-}
-
-void fill_with_random(ssd1306_t device)
-{
-	ssd1306_acquire(device);
-	for( unsigned page = 0; page < device->pages; page++ ) {
-		esp_fill_random(ssd1306_raster(device, page), device->width);
-	}
-	ssd1306_update(device, NULL);
-	ssd1306_release(device);
 }
 
 void expand_black_rectangle(ssd1306_t device, TickType_t* ticks)
@@ -51,6 +41,32 @@ void expand_black_rectangle(ssd1306_t device, TickType_t* ticks)
 	}
 }
 
+void expand_random_rectangle(ssd1306_t device, TickType_t* ticks)
+{
+	const int16_t dim = mini(device->width, device->height) / 2 - 1;
+
+	ssd1306_bounds_t bounds = {
+		x0: dim, y0: dim, 
+		x1: device->width - dim,
+		y1: device->height - dim,
+	};
+
+	ssd1306_bitmap_t* temp = ssd1306_create_bitmap(device->width, device->height);
+	ssd1306_grab_b(device, &device->bounds, temp);
+	ssd1306_clear_b(device, &device->bounds);
+
+	while( bounds.x0 >= 0 && bounds.y0 >= 0 ) {
+		ssd1306_draw_b(device, &bounds, temp);
+
+		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
+
+		bounds.x0--;
+		bounds.y0--;
+		bounds.x1++;
+		bounds.y1++;
+	}
+}
+
 void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 {
 	const unsigned dim = mini(device->width, device->height) / 2 - 1;
@@ -59,20 +75,20 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 
 	ssd1306_bitmap_t* temp = ssd1306_create_bitmap(device->width, device->height);
 
-	ssd1306_grab_b(device, NULL, temp);
+	ssd1306_grab_b(device, &bounds, temp);
 
 	while( bounds.x0 <= dim && bounds.y0 <= dim ) {
 		ssd1306_auto_update(device, false);
-		ssd1306_draw_b(device, NULL, temp);
+		ssd1306_draw_b(device, &device->bounds, temp);
 		ssd1306_clear_b(device, &bounds);
 		ssd1306_auto_update(device, true);
-
-		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
 
 		bounds.x0++;
 		bounds.y0++;
 		bounds.x1--;
 		bounds.y1--;
+
+		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
 	}
 }
 
@@ -80,39 +96,31 @@ void run_demo(ssd1306_t device)
 {
 	TickType_t ticks = xTaskGetTickCount();
 
+	bool invert = false;
+
 	while( true ) {
-		fill_with_random(device);
+		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+		ssd1306_fill_randomly(device, &device->bounds);
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 		expand_black_rectangle(device, &ticks);
 
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		fill_with_random(device);
+		ssd1306_fill_randomly(device, &device->bounds);
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 		shrink_black_rectangle(device, &ticks);
 
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+		ssd1306_fill_randomly(device, &device->bounds);
+		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+		expand_random_rectangle(device, &ticks);
 
-		for( uint8_t ct = 0xff; ; ct >>= 1 ) {
-			ssd1306_contrast(device, ct);
-			vTaskDelayUntil(&ticks, pdMS_TO_TICKS(250));
-
-			if( ct == 0 ) {
-				break;
-			}
-		}
+		// vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+		// ssd1306_fill_randomly(device, &device->bounds);
+		// vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+		// shrink_random_rectangle(device, &ticks);
 
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		ssd1306_contrast(device, CONFIG_SSD1306_CONTRAST);
-
-		for( int16_t k = 0; k < 16; k++ ) {
-			vTaskDelayUntil(&ticks, pdMS_TO_TICKS(250));
-			ssd1306_on(device, k & 1);
-		}
-
-		for( int16_t k = 0; k < 16; k++ ) {
-			vTaskDelayUntil(&ticks, pdMS_TO_TICKS(250));
-			ssd1306_invert(device, !(k & 1));
-		}
+		ssd1306_invert(device, invert = !invert);
 	}
 }
 
@@ -132,7 +140,7 @@ void app_main(void)
 	};
 
 #if CONFIG_DISPLAY0_TYPE
-	init[0]->panel = CONFIG_DISPLAY0_TYPE;
+	init[0]->panel = CONFIG_DISPLAY0_PANEL_TYPE;
 	init[0]->flip = CONFIG_DISPLAY0_FLIP;
 	init[0]->invert = CONFIG_DISPLAY0_INVERT;
 	init[0]->contrast = CONFIG_DISPLAY0_CONTRAST;
@@ -148,7 +156,7 @@ void app_main(void)
 #endif
 
 #if CONFIG_DISPLAY1_TYPE
-	init[0]->panel = CONFIG_DISPLAY1_TYPE;
+	init[0]->panel = CONFIG_DISPLAY1_PANEL_TYPE;
 	init[1]->flip = CONFIG_DISPLAY1_FLIP;
 	init[1]->invert = CONFIG_DISPLAY1_INVERT;
 	init[1]->contrast = CONFIG_DISPLAY1_CONTRAST;
