@@ -8,15 +8,15 @@
 #include <driver/spi_master.h>
 
 static const ssd1306_init_s init_default = {
+	free: true,
+
+	panel: (ssd1306_panel_t)CONFIG_SSD1306_PANEL_TYPE,
 #if CONFIG_SSD1306_FLIP
 	flip: true,
 #endif
 #if CONFIG_SSD1306_INVERT
 	invert: true,
 #endif
-	free: true,
-	panel: (ssd1306_panel_t)CONFIG_SSD1306_PANEL_TYPE,
-
 	contrast: CONFIG_SSD1306_CONTRAST,
 
 	font: ssd1306_default_font,

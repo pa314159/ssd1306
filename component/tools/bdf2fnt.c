@@ -530,7 +530,11 @@ int main(int argc, char* const argv[])
 			printf("\n");
 		}
 
-		if( glyph->width > info->width || glyph->height > info->height ) {
+		if( info->width && glyph->width > info->width ) {
+			fail(info, "invalid glyph size %dx%d exceeding %dx%d",
+				 glyph->width, glyph->height, info->width, info->height);
+		}
+		if( info->height && glyph->height > info->height ) {
 			fail(info, "invalid glyph size %dx%d exceeding %dx%d",
 				 glyph->width, glyph->height, info->width, info->height);
 		}

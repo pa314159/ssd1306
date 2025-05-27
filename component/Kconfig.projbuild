@@ -86,11 +86,32 @@ menu "SSD1306 Configuration"
         help
             Set the initial contrast of the display.
 
-    config SSD1306_FONT
-        string "Embedded font"
-        default "ib8x8u"
+    choice
+        prompt "Embedded font"
+        default SSD1306_FONT_IB
+
+        config SSD1306_FONT_IB
+            bool "ib8x8u"
+        config SSD1306_FONT_IC
+            bool "ic8x8u"
+        config SSD1306_FONT_ICL
+            bool "icl8x8u"
+        config SSD1306_FONT_CUSTOM
+            bool "Custom font"
+    endchoice
+
+    config SSD1306_FONT_CUSTOM_NAME
+        depends on SSD1306_FONT_CUSTOM
+        string "Font name"
         help
-            Embedded font name.
+            Custom font name.
+
+    config SSD1306_FONT_NAME
+        string
+        default "ib8x8u" if SSD1306_FONT_IB
+        default "ic8x8u" if SSD1306_FONT_IC
+        default "icl8x8u" if SSD1306_FONT_ICL
+        default SSD1306_FONT_CUSTOM_NAME if SSD1306_FONT_CUSTOM
 
     config SSD1306_TEXT_INVERT
         int "Character code to switch colors"

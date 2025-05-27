@@ -46,6 +46,8 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 		init = ssd1306_create_init(ssd1306_interface_any);
 	}
 
+	ABORT_IF(init->font == NULL, "no font provided");
+
 	// allocate additional bytes for internal buffer and raster
 	const uint8_t pages = 4 * ((int)init->panel + 1);
 	const size_t total = sizeof(ssd1306_int_s) + pages * CONFIG_SSD1306_WIDTH;

@@ -20,7 +20,7 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 
 	ssd1306_int_t dev = (ssd1306_int_t)device;
 	const uint16_t index = ssd1306_status_index(dev, status);
-	status_info_t* si = &dev->statuses[status];
+	status_info_t* si = &dev->statuses[index];
 
 	if( si->bitmap ) {
 		free(si->bitmap);
@@ -28,7 +28,11 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		si->bitmap = NULL;
 	}
 
-	const ssd1306_bounds_t* bounds = (ssd1306_bounds_t*)&dev->statuses[index];
+	const ssd1306_bounds_t* bounds = (ssd1306_bounds_t*)si;
+
+	LOG_D("status info at index %u(%u), bounds [(%d, %d) (%d, %d)]",
+		index, status,
+		bounds->x0, bounds->y0, bounds->x1, bounds->y1);
 
 	ssd1306_clear_internal(device, bounds, bounds);
 
@@ -156,14 +160,14 @@ ssd1306_bitmap_t* ssd1306_text_bitmapv(ssd1306_t device, const char* format, va_
 
 	bool invert = false;
 
-	for( unsigned index = 0, offset = 0; index < length && offset < width; index++ ) {
+	for( uint16_t index = 0, offset = 0; index < length && offset < width; index++ ) {
 		if( text[index] == CONFIG_SSD1306_TEXT_INVERT ) {
 			invert = !invert;
 
 			continue;
 		}
 
-		const unsigned cpos = text[index];
+		const uint16_t cpos = text[index];
 		const ssd1306_glyph_t* glyph = device->font + cpos;
 
 		if( invert ) {

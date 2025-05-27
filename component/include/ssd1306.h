@@ -102,15 +102,17 @@ typedef enum {
 
 typedef struct PACKED ssd1306_init_s {
 	struct PACKED {
+		bool free; // structure to be freed by ssd1306_init
+
 		ssd1306_panel_t panel:1;
+
 		bool flip;
 		bool invert;
-		bool free; // structure to be freed by ssd1306_init
 	};
 
 	uint8_t contrast;
 
-	const ssd1306_glyph_t* const font;
+	const ssd1306_glyph_t* font;
 
 	ssd1306_connection_t connection;
 } ssd1306_init_s;

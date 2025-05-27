@@ -9,17 +9,19 @@
 #define SSD1306_IIC_TIMEOUT 100 /* ms */
 
 static const ssd1306_init_s init_default = {
+	free: true,
+
+	panel: (ssd1306_panel_t)CONFIG_SSD1306_PANEL_TYPE,
 #if CONFIG_SSD1306_FLIP
 	flip: true,
 #endif
 #if CONFIG_SSD1306_INVERT
 	invert: true,
 #endif
-	free: true,
-
 	contrast: CONFIG_SSD1306_CONTRAST,
-	panel: (ssd1306_panel_t)CONFIG_SSD1306_PANEL_TYPE,
+
 	font: ssd1306_default_font,
+
 	connection: {
 		type: ssd1306_interface_iic,
 		freq: CONFIG_SSD1306_IIC_FREQ,

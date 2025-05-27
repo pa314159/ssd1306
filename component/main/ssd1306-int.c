@@ -58,10 +58,10 @@ void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 	const uint16_t p0 = bounds->y0 / 8;
 	const uint16_t p1 = bounds->y1 / 8 + (bounds->y1 % 8 ? 1 : 0);
 
-	LOG_D("x0 = %u, x1 = %u, p0 = %u, p1 = %u", x0, x1, p0, p1);
+	// LOG_D("x0 = %u, x1 = %u, p0 = %u, p1 = %u", x0, x1, p0, p1);
 #endif
 
-	const uint64_t start = esp_timer_get_time();
+	// const uint64_t start = esp_timer_get_time();
 
 #if CONFIG_SSD1306_OPTIMIZE
 	const uint8_t data[] = {
@@ -77,11 +77,11 @@ void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 		ssd1306_send_buff(dev, OLED_CTL_DATA, buff + x0, x1 - x0);
 	}
 
-	LOG_D("region updated in %u \u03BCs", esp_timer_get_time()-start);
+	// LOG_D("region updated in %u \u03BCs", esp_timer_get_time()-start);
 #else
 	ssd1306_send_buff(dev, OLED_CTL_DATA, dev->buff, dev->width * dev->pages);
 
-	LOG_D("full region updated in %u \u03BCs", esp_timer_get_time()-start);
+	// LOG_D("full region updated in %u \u03BCs", esp_timer_get_time()-start);
 #endif
 }
 
