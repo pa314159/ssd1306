@@ -5,7 +5,7 @@
 
 static void ssd1306_clear_page(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, uint8_t mask);
 
-void ssd1306_clear_b(ssd1306_t device, const ssd1306_bounds_t* bounds)
+void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* bounds)
 {
 	ABORT_IF_NULL(device);
 	ABORT_IF_NULL(bounds);

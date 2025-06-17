@@ -18,7 +18,7 @@ void app_main(void)
 	ssd1306_bounds_t bounds;
 
 	ssd1306_center_bounds(device, &bounds, splash_bmp);
-	ssd1306_clear_b(device, &bounds);
+	ssd1306_clear(device, &bounds);
 
 	const ssd1306_bounds_t* bounds0 = ssd1306_status_bounds(device, ssd1306_status_0);
 	const ssd1306_bounds_t* bounds1 = ssd1306_status_bounds(device, ssd1306_status_1);
@@ -27,11 +27,11 @@ void app_main(void)
 	const char* status1 = "restarting in %+d seconds...";
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
-	ssd1306_text_b(device, bounds0, status0);
+	ssd1306_text(device, bounds0, status0);
 
 	for( int k = 9; k >= 0; k-- ) {
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
-		ssd1306_text_b(device, bounds1, status1, k);
+		ssd1306_text(device, bounds1, status1, k);
 	}
 
 	esp_restart();

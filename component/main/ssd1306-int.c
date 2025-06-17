@@ -9,6 +9,8 @@
 #define SCREEN_SCROLL_FPS   25
 #define SCREEN_SCROLL_TICKS pdMS_TO_TICKS(1000/SCREEN_SCROLL_FPS)
 
+const ssd1306_point_t POINT_ZERO = {};
+
 static void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds);
 
 static const status_info_t* update_status(ssd1306_int_t dev, uint8_t index, ssd1306_bounds_t* bounds);
@@ -79,7 +81,7 @@ void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds)
 
 	// LOG_D("region updated in %u \u03BCs", esp_timer_get_time()-start);
 #else
-	ssd1306_send_buff(dev, OLED_CTL_DATA, dev->buff, dev->width * dev->pages);
+	ssd1306_send_buff(dev, OLED_CTL_DATA, dev->buff, dev->w * dev->pages);
 
 	// LOG_D("full region updated in %u \u03BCs", esp_timer_get_time()-start);
 #endif
@@ -142,18 +144,18 @@ void move_status(ssd1306_int_t dev, status_info_t* status, ssd1306_bounds_t* bou
 
 	uint8_t* buff = ssd1306_raster((ssd1306_t)dev, status->y0 / 8);
 
-	memset(buff, 0, dev->width);
+	memset(buff, 0, dev->w);
 
 	if( offset <= 0 ) {
-		uint16_t width = minu(dev->width, status->bitmap->width - -offset);
+		uint16_t width = minu(dev->w, status->bitmap->w - -offset);
 
 		memcpy(buff, status->bitmap->image + -offset, width);
 
-		if( width < dev->width ) {
-			memcpy(buff + width, status->bitmap->image, dev->width - width);
+		if( width < dev->w ) {
+			memcpy(buff + width, status->bitmap->image, dev->w - width);
 		}
 	} else {
-		memcpy(buff + offset, status->bitmap->image, dev->width - offset);
+		memcpy(buff + offset, status->bitmap->image, dev->w - offset);
 	}
 
 	ssd1306_bounds_union(bounds, (ssd1306_bounds_t*)status);

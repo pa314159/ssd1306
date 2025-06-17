@@ -6,7 +6,7 @@
 static void ssd1306_grab_page_1(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, uint8_t* data, int8_t bits);
 static void ssd1306_grab_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, uint8_t* data, int8_t bits, uint8_t d_mask);
 
-void ssd1306_grab_b(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap)
+void ssd1306_grab(ssd1306_t device, const ssd1306_bounds_t* bounds, ssd1306_bitmap_t* bitmap)
 {
 	ABORT_IF_NULL(device);
 	ABORT_IF_NULL(bounds);

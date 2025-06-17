@@ -5,28 +5,30 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <esp_log.h>
 #include <esp_random.h>
 #include <esp_timer.h>
 
-#define SPACESHIP_W 16
-#define SPACESHIP_H 11
+#define SCREEN_IMAGE_FPS   25U
+#define SCREEN_IMAGE_TICKS pdMS_TO_TICKS(1000U / SCREEN_IMAGE_FPS)
 
-const ssd1306_bitmap_t spaceship1_bmp = {
-	width: SPACESHIP_W,
-	height: SPACESHIP_H,
+static const ssd1306_bitmap_t spaceship_asc = {
+	w: 16, h: 11,
+
 	image: {
-		// 'spaceship-1', 16x12px
+		// 'spaceship-asc', 16x11px
 		0x18, 0x24, 0x44, 0x46, 0x8a, 0x92, 0x95, 0x95, 0x95, 0x95, 0x92, 0x8a, 0x46, 0x44, 0x24, 0x18, 
 		0x00, 0x00, 0x04, 0x02, 0x01, 0x00, 0x02, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x00, 0x00, 
 	},
 };
-	
-const ssd1306_bitmap_t spaceship2_bmp = {
-	width: SPACESHIP_W,
-	height: SPACESHIP_H,
+
+static const ssd1306_bitmap_t spaceship_dsc = {
+	w: 16, h: 8,
+
 	image: {
-		// 'spaceship-2', 16x12px
+		// 'spaceship-dsc', 16x8px
 		0x18, 0x24, 0x44, 0x46, 0x8a, 0x93, 0x95, 0x95, 0x95, 0x95, 0x93, 0x8a, 0x46, 0x44, 0x24, 0x18, 
+		// room from some experiments
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	},
 };
@@ -40,62 +42,51 @@ inline int random_01()
 	return esp_random() & 1;
 }
 
-static void bouncing_bitmap(ssd1306_t device, bool with_status)
+static void bouncing_bitmap(ssd1306_t device)
 {
-	const int16_t x_min = 0;
-	const int16_t x_max = device->width;
-	const int16_t y_min = device->flip || !with_status ? 0 : 16;
-	const int16_t y_max = device->height - (with_status ? 16 - y_min : 0);
-
-	ssd1306_bounds_t bounds = {
-		x1: SPACESHIP_W,
-		y1: SPACESHIP_H,
+	const ssd1306_bounds_t limits = {
+		x0: 8,
+		y0: 5,
+		x1: device->w - 8,
+		y1: device->h - 6,
 	};
 
-	ssd1306_bounds_move_to(&bounds, x_min + esp_random() % (x_max - x_min), y_min + esp_random() % (y_max - y_min));
+	ESP_LOGI("MAIN", "Universe [+%d+%d, %+d%+d]", limits.x0, limits.y0, limits.x1, limits.y1);
 
-	int16_t speed_x = 1 - 2*random_01();
-	int16_t speed_y = 1 - 2*random_01();
+	ssd1306_bounds_t bounds = limits;
+	ssd1306_bounds_resize(&bounds, spaceship_asc.size);
+	ssd1306_bounds_move_by(&bounds, (ssd1306_point_t){
+		esp_random() % ssd1306_bounds_width(&limits),
+		esp_random() % ssd1306_bounds_height(&limits),
+	});
 
-	const uint64_t start = esp_timer_get_time();
-	uint64_t loops = 0;
+	ssd1306_point_t speed = { 1 - 2*random_01(), 1 - 2*random_01() };
+	TickType_t ticks = xTaskGetTickCount();
 
 	ssd1306_auto_update(device, false);
 
 	while( true ) {
-		const ssd1306_bitmap_t* bm = speed_y < 0 ? &spaceship1_bmp : &spaceship2_bmp;
+		const ssd1306_bitmap_t* bm = speed.y < 0 ? &spaceship_asc : &spaceship_dsc;
 
-		ssd1306_draw_b(device, &bounds, bm);
+		ssd1306_draw(device, &bounds, bm, NULL);
 		ssd1306_auto_update(device, true);
 		ssd1306_auto_update(device, false);
-		ssd1306_clear_b(device, &bounds);
+		ssd1306_clear(device, &bounds);
 
-		ssd1306_bounds_move_by(&bounds, speed_x, speed_y);
+		ssd1306_bounds_move_by(&bounds, speed);
 
-		if( bounds.x0 < x_min || bounds.x1 > x_max ) {
-			speed_x = -signum_of(speed_x) * (1 + random_01());
+		if( (speed.x < 0 && bounds.x0 < limits.x0) || (speed.x > 0 && bounds.x1 > limits.x1) ) {
+			ssd1306_bounds_move_by(&bounds, (ssd1306_point_t){ -speed.x, 0 });
 
-			ssd1306_bounds_move_by(&bounds, speed_x, 0);
+			speed.x = -signum_of(speed.x) * (1 + random_01());
 		}
-		if( bounds.y0 < y_min || bounds.y1 > y_max ) {
-			speed_y = -signum_of(speed_y) * (1 + random_01());
+		if( (speed.y < 0 && bounds.y0 < limits.y0) || (speed.y > 0 && bounds.y1 > limits.y1) ) {
+			ssd1306_bounds_move_by(&bounds, (ssd1306_point_t){ 0, -speed.y });
 
-			ssd1306_bounds_move_by(&bounds, 0, speed_y);
-		}
-
-		const uint64_t time_local = esp_timer_get_time();
-		const double time_total = (double)(time_local - start) / 1E6;
-
-		if( time_total >= 1000 ) {
-			break;
+			speed.y = -signum_of(speed.y) * (1 + random_01());
 		}
 
-		const double time_average = (double)(time_local - start) / (++loops) / 1E3;
-
-		if( with_status ) {
-			ssd1306_status(device, ssd1306_status_0, "T \x07%7.3fs\x07 X \x07%3d", time_total, (bounds.x0 + bounds.x1) / 2);
-			ssd1306_status(device, ssd1306_status_1, "t \x07%6.2fms\x07 Y \x07%3d", time_average, (bounds.y0 + bounds.y1) / 2);
-		}
+		vTaskDelayUntil(&ticks, SCREEN_IMAGE_TICKS);
 	}
 }
 
@@ -103,8 +94,8 @@ void app_main(void)
 {
 	ssd1306_t device = ssd1306_init(NULL);
 
-	ssd1306_clear_b(device, NULL);
-	bouncing_bitmap(device, device->height == 64);
+	ssd1306_clear(device, &device->bounds);
+	bouncing_bitmap(device);
 
 	esp_restart();
 }

@@ -2,8 +2,7 @@
 #include <ssd1306.h>
 
 static const ssd1306_bitmap_t splash_bmp_private = {
-	width: 120,
-	height: 24,
+	w: 120,	h: 24,
 
 	image: {
 		// https://javl.github.io/image2cpp/

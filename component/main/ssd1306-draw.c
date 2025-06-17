@@ -3,18 +3,29 @@
 
 #include "ssd1306-int.h"
 
-static void ssd1306_draw_page_1(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, const uint8_t* data, int8_t bits);
-static void ssd1306_draw_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, const uint8_t* data, int8_t bits, uint8_t d_mask);
+static void ssd1306_draw_page_1(ssd1306_t device, 
+	uint8_t page, int16_t offset, uint16_t width, const uint8_t* data, int8_t bits);
+static void ssd1306_draw_page_2(ssd1306_t device,
+	uint8_t page, int16_t offset, uint16_t width, const uint8_t* data, int8_t bits, uint8_t d_mask);
 
-void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bitmap_t* bitmap)
+void ssd1306_draw(ssd1306_t device, const ssd1306_bounds_t* target,
+	const ssd1306_bitmap_t* bitmap, const ssd1306_point_t* offset)
 {
 	ABORT_IF_NULL(device);
-	ABORT_IF_NULL(bounds);
+	ABORT_IF_NULL(target);
 	ABORT_IF_NULL(bitmap);
 
-	ssd1306_bounds_t trimmed = *bounds;
+	if( offset == NULL ) {
+		offset = &POINT_ZERO;
+	}
 
-	if( !ssd1306_trim(device, &trimmed, &bitmap->size) ) {
+	ssd1306_size_t bmsize = bitmap->size;
+	ssd1306_bounds_t trimmed = *target;
+
+	bmsize.w -= offset->x;
+	bmsize.h -= offset->y;
+
+	if( !ssd1306_trim(device, &trimmed, &bmsize) ) {
 		return;
 	}
 	if( !ssd1306_acquire(device) ) {
@@ -23,7 +34,7 @@ void ssd1306_draw_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1
 		return;
 	}
 
-	ssd1306_draw_internal(device, bounds, &trimmed, bitmap);
+	ssd1306_draw_internal(device, target, &trimmed, bitmap, offset);
 
 	ssd1306_update(device, &trimmed);
 	ssd1306_release(device);
@@ -43,13 +54,15 @@ void ssd1306_draw_c(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_bounds_t bounds;
 	ssd1306_center_bounds(device, &bounds, bitmap);
 
-	ssd1306_draw_internal(device, &bounds, &bounds, bitmap);
+	ssd1306_draw_internal(device, &bounds, &bounds, bitmap, &POINT_ZERO);
 
 	ssd1306_update(device, &bounds);
 	ssd1306_release(device);
 }
 
-void ssd1306_draw_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed, const ssd1306_bitmap_t* bitmap)
+void ssd1306_draw_internal(ssd1306_t device,
+	const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed,
+	const ssd1306_bitmap_t* bitmap, const ssd1306_point_t* offset)
 {
 	const uint8_t* image = bitmap->image;
 

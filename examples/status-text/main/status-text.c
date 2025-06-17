@@ -21,7 +21,7 @@ void fill_with_random(ssd1306_t device)
 	ssd1306_acquire(device);
 
 	for( uint16_t page = 0; page < device->pages-2; page++ ) {
-		esp_fill_random(ssd1306_raster(device, page), device->width);
+		esp_fill_random(ssd1306_raster(device, page), device->w);
 	}
 
 	ssd1306_update(device, NULL);
@@ -60,7 +60,7 @@ void app_main(void)
 	ssd1306_status(device, ssd1306_status_1, status1);
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-	ssd1306_clear_b(device, &device->bounds);
+	ssd1306_clear(device, &device->bounds);
 
 	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 	ssd1306_status(device, ssd1306_status_int, status0);

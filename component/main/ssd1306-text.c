@@ -47,7 +47,7 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		ssd1306_bounds_t trimmed = *bounds;
 
 		ssd1306_trim(device, &trimmed, &bitmap->size);
-		ssd1306_draw_internal(device, bounds, &trimmed, bitmap);
+		ssd1306_draw_internal(device, bounds, &trimmed, bitmap, &POINT_ZERO);
 
 		if( bitmap->w > device->w ) {
 			si->bitmap = bitmap;
@@ -71,7 +71,7 @@ const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t
 	return (ssd1306_bounds_t*)&dev->statuses[index];
 }
 
-void ssd1306_text_b(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* format, ...)
+void ssd1306_text(ssd1306_t device, const ssd1306_bounds_t* bounds, const char* format, ...)
 {
 	va_list args;
 
@@ -92,7 +92,7 @@ uint16_t ssd1306_text_width(ssd1306_t device, const char* text)
 			continue;
 		}
 
-		width += device->font[(uint8_t)(*text)].width;
+		width += device->font[(uint8_t)(*text)].w;
 	}
 
 	return width;
@@ -133,7 +133,7 @@ void ssd1306_text_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, con
 		return;
 	}
 
-	ssd1306_draw_internal(device, bounds, &trimmed, bitmap);
+	ssd1306_draw_internal(device, bounds, &trimmed, bitmap, &POINT_ZERO);
 
 	free(bitmap);
 
@@ -156,7 +156,7 @@ ssd1306_bitmap_t* ssd1306_text_bitmapv(ssd1306_t device, const char* format, va_
 		width = ssd1306_text_width(device, text);
 	}
 
-	ssd1306_bitmap_t* bitmap = ssd1306_create_bitmap(width, SSD1306_TEXT_HEIGHT);
+	ssd1306_bitmap_t* bitmap = ssd1306_create_bitmap((ssd1306_size_t){ width, SSD1306_TEXT_HEIGHT });
 
 	bool invert = false;
 

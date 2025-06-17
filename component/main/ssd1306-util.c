@@ -30,8 +30,9 @@ bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size
 	}
 
 	if( ssd1306_bounds_intersect(bounds, &device->bounds) ) {
-		LOG_V("<< bounds [%+d%+d, %+d%+d]",
-			bounds->x0, bounds->y0, bounds->x1, bounds->y1);
+		LOG_V("<< bounds [%+d%+d, %+d%+d], size %ux%u",
+			bounds->x0, bounds->y0, bounds->x1, bounds->y1,
+			ssd1306_bounds_width(bounds), ssd1306_bounds_height(bounds));
 
 		return true;
 	} else {

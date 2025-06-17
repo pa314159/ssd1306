@@ -4,6 +4,8 @@
 #include <ssd1306.h>
 #include <ssd1306-misc.h>
 
+#include "ssd1306-int.h" // to reuse "mini"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -14,23 +16,21 @@
 #error no display installed
 #endif
 
-inline int mini(int a, int b)
-{
-	return a < b ? a : b;
-}
-
 void expand_black_rectangle(ssd1306_t device, TickType_t* ticks)
 {
-	const int16_t dim = mini(device->width, device->height) / 2 - 1;
+	ssd1306_fill_randomly(device, &device->bounds);
+	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+
+	const int16_t dim = mini(device->w, device->h) / 2 - 1;
 
 	ssd1306_bounds_t bounds = {
 		x0: dim, y0: dim, 
-		x1: device->width - dim,
-		y1: device->height - dim,
+		x1: device->w - dim,
+		y1: device->h - dim,
 	};
 
 	while( bounds.x0 >= 0 && bounds.y0 >= 0 ) {
-		ssd1306_clear_b(device, &bounds);
+		ssd1306_clear(device, &bounds);
 
 		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
 
@@ -39,48 +39,25 @@ void expand_black_rectangle(ssd1306_t device, TickType_t* ticks)
 		bounds.x1++;
 		bounds.y1++;
 	}
-}
 
-void expand_random_rectangle(ssd1306_t device, TickType_t* ticks)
-{
-	const int16_t dim = mini(device->width, device->height) / 2 - 1;
-
-	ssd1306_bounds_t bounds = {
-		x0: dim, y0: dim, 
-		x1: device->width - dim,
-		y1: device->height - dim,
-	};
-
-	ssd1306_bitmap_t* temp = ssd1306_create_bitmap(device->width, device->height);
-	ssd1306_grab_b(device, &device->bounds, temp);
-	ssd1306_clear_b(device, &device->bounds);
-
-	while( bounds.x0 >= 0 && bounds.y0 >= 0 ) {
-		ssd1306_draw_b(device, &bounds, temp);
-
-		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
-
-		bounds.x0--;
-		bounds.y0--;
-		bounds.x1++;
-		bounds.y1++;
-	}
+	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 }
 
 void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 {
-	const unsigned dim = mini(device->width, device->height) / 2 - 1;
+	ssd1306_fill_randomly(device, &device->bounds);
+	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 
+	const unsigned dim = mini(device->w, device->h) / 2;
+	ssd1306_bitmap_t* bitmap = ssd1306_create_bitmap((ssd1306_size_t){ device->w, device->h });
 	ssd1306_bounds_t bounds = device->bounds;
 
-	ssd1306_bitmap_t* temp = ssd1306_create_bitmap(device->width, device->height);
-
-	ssd1306_grab_b(device, &bounds, temp);
+	ssd1306_grab(device, &bounds, bitmap);
 
 	while( bounds.x0 <= dim && bounds.y0 <= dim ) {
 		ssd1306_auto_update(device, false);
-		ssd1306_draw_b(device, &device->bounds, temp);
-		ssd1306_clear_b(device, &bounds);
+		ssd1306_draw(device, &device->bounds, bitmap, NULL);
+		ssd1306_clear(device, &bounds);
 		ssd1306_auto_update(device, true);
 
 		bounds.x0++;
@@ -90,6 +67,35 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 
 		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
 	}
+
+	free(bitmap);
+	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+}
+
+void expand_random_rectangle(ssd1306_t device, TickType_t* ticks)
+{
+	ssd1306_clear(device, &device->bounds);
+	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
+
+	const int16_t dim = mini(device->w, device->h) / 2 - 1;
+
+	ssd1306_bounds_t bounds = {
+		x0: dim, y0: dim, 
+		x1: device->w - dim,
+		y1: device->h - dim,
+	};
+
+	while( bounds.x0 >= 0 && bounds.y0 >= 0 ) {
+		ssd1306_fill_randomly(device, &bounds);
+		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
+
+		bounds.x0--;
+		bounds.y0--;
+		bounds.x1++;
+		bounds.y1++;
+	}
+
+	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 }
 
 void run_demo(ssd1306_t device)
@@ -99,25 +105,9 @@ void run_demo(ssd1306_t device)
 	bool invert = false;
 
 	while( true ) {
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		ssd1306_fill_randomly(device, &device->bounds);
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 		expand_black_rectangle(device, &ticks);
-
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		ssd1306_fill_randomly(device, &device->bounds);
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 		shrink_black_rectangle(device, &ticks);
-
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		ssd1306_fill_randomly(device, &device->bounds);
-		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 		expand_random_rectangle(device, &ticks);
-
-		// vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		// ssd1306_fill_randomly(device, &device->bounds);
-		// vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
-		// shrink_random_rectangle(device, &ticks);
 
 		vTaskDelayUntil(&ticks, pdMS_TO_TICKS(PAUSE_MILLIS));
 		ssd1306_invert(device, invert = !invert);

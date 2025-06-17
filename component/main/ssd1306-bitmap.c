@@ -3,22 +3,17 @@
 
 #include "ssd1306-int.h"
 
-ssd1306_bitmap_t* ssd1306_create_bitmap(uint16_t width, uint16_t height)
+ssd1306_bitmap_t* ssd1306_create_bitmap(const ssd1306_size_t size)
 {
-	const size_t length = sizeof(ssd1306_bitmap_t) + bytes_cap(height) * width;
+	const size_t length = sizeof(ssd1306_bitmap_t) + bytes_cap(size.h) * size.w;
 
 	ssd1306_bitmap_t* bitmap = calloc(1, length);
 
 	ABORT_IF(bitmap == NULL, "cannot allocate memory for bitmap of size %u", length);
 
-	LOG_D("allocated bitmap of %ux%u, %u bytes at %p", width, height, length, bitmap);
+	LOG_D("allocated bitmap of %ux%u, %u bytes at %p", size.w, size.h, length, bitmap);
 
-	const ssd1306_size_t size = {
-		width: width,
-		height: height,
-	};
-
-	memcpy((void*)&bitmap->size, &size, sizeof(size));
+	memcpy((void*)&bitmap->size, &size, sizeof(bitmap->size));
 
 	return bitmap;
 }
