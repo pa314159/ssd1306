@@ -83,7 +83,7 @@ menu "Demo App Configuration"
         config DISPLAY0_IIC_RST_PIN
             depends on DISPLAY0_IIC
             int "RESET GPIO number"
-            range -1 GPIO_RANGE_MAX
+            range -1 ENV_GPIO_RANGE_MAX
             default -1
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
@@ -115,7 +115,7 @@ menu "Demo App Configuration"
         config DISPLAY0_SPI_RST_PIN
             depends on DISPLAY0_SPI
             int "RESET GPIO number"
-            range -1 GPIO_RANGE_MAX
+            range -1 ENV_GPIO_RANGE_MAX
             default 15 if IDF_TARGET_ESP32
             default 38 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
             default  4 # C3 and others
@@ -214,7 +214,7 @@ menu "Demo App Configuration"
         config DISPLAY1_IIC_RST_PIN
             depends on DISPLAY1_IIC
             int "RESET GPIO number"
-            range -1 GPIO_RANGE_MAX
+            range -1 ENV_GPIO_RANGE_MAX
             default -1
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
@@ -246,7 +246,7 @@ menu "Demo App Configuration"
         config DISPLAY1_SPI_RST_PIN
             depends on DISPLAY1_SPI
             int "RESET GPIO number"
-            range -1 GPIO_RANGE_MAX
+            range -1 ENV_GPIO_RANGE_MAX
             default 15 if IDF_TARGET_ESP32
             default 38 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
             default  4 # C3 and others

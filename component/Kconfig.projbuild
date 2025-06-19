@@ -1,15 +1,5 @@
 menu "SSD1306 Configuration"
-    orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
-
-	config GPIO_RANGE_MAX
-		int
-		default 33 if IDF_TARGET_ESP32
-		default 46 if IDF_TARGET_ESP32S2
-		default 48 if IDF_TARGET_ESP32S3
-		default 18 if IDF_TARGET_ESP32C2
-		default 19 if IDF_TARGET_ESP32C3
-		default 30 if IDF_TARGET_ESP32C6
-		default 27 if IDF_TARGET_ESP32H2
+    source "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
 
     choice
         prompt "Logging level"
@@ -168,14 +158,14 @@ menu "SSD1306 Configuration"
     menu "IIC defaults"
         config SSD1306_IIC_RST_PIN
             int "RESET GPIO number"
-            range -1 GPIO_RANGE_MAX
+            range -1 ENV_GPIO_RANGE_MAX
             default -1
             help
                 GPIO number (IOxx) to RESET. When it is -1, RESET isn't performed.
 
         config SSD1306_IIC_SCL_PIN
             int "SCL GPIO number"
-            range 0 GPIO_RANGE_MAX
+            range 0 ENV_GPIO_RANGE_MAX
             default 22 if IDF_TARGET_ESP32
             default  2 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
             default  6 # C3 and others
@@ -186,7 +176,7 @@ menu "SSD1306 Configuration"
 
         config SSD1306_IIC_SDA_PIN
             int "SDA GPIO number"
-            range 0 GPIO_RANGE_MAX
+            range 0 ENV_GPIO_RANGE_MAX
             default 21 if IDF_TARGET_ESP32
             default  1 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32H2
             default  5 # C3 and others
@@ -244,7 +234,7 @@ menu "SSD1306 Configuration"
         config SSD1306_SPI_RST_GPIO
             depends on !SSD1306_SPI_PIN_MATCH
             int "RESET GPIO number"
-            range -1 GPIO_RANGE_MAX
+            range -1 ENV_GPIO_RANGE_MAX
             default 15 if IDF_TARGET_ESP32
             default 38 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
             default  4 # C3 and others
@@ -259,7 +249,7 @@ menu "SSD1306 Configuration"
         config SSD1306_SPI_MOSI_GPIO
             depends on !SSD1306_SPI_PIN_MATCH
             int "D1 / MOSI GPIO number"
-            range 0 GPIO_RANGE_MAX
+            range 0 ENV_GPIO_RANGE_MAX
             default 23 if IDF_TARGET_ESP32
             default 35 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
             default  1 # C3 and others
@@ -274,7 +264,7 @@ menu "SSD1306 Configuration"
         config SSD1306_SPI_SCLK_GPIO
             depends on !SSD1306_SPI_PIN_MATCH
             int "D0 / SCLK GPIO number"
-            range 0 GPIO_RANGE_MAX
+            range 0 ENV_GPIO_RANGE_MAX
             default 18 if IDF_TARGET_ESP32
             default 36 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
             default  2 # C3 and others
@@ -303,7 +293,7 @@ menu "SSD1306 Configuration"
         config SSD1306_SPI_DC_GPIO
             depends on !SSD1306_SPI_PIN_MATCH
             int "DC GPIO number"
-            range 0 GPIO_RANGE_MAX
+            range 0 ENV_GPIO_RANGE_MAX
             default  4 if IDF_TARGET_ESP32
             default 37 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
             default  3 # C3 and others
