@@ -1,0 +1,6 @@
+
+MTMS - 14 - GRI
+MTCK - 13 - MOV
+MTDO - 15 - ALBASTRU
+MTDI - 12 - VERDE
+

@@ -56,7 +56,7 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 
 	while( bounds.x0 <= dim && bounds.y0 <= dim ) {
 		ssd1306_auto_update(device, false);
-		ssd1306_draw(device, &device->bounds, bitmap, NULL);
+		ssd1306_draw(device, &device->bounds, bitmap);
 		ssd1306_clear(device, &bounds);
 		ssd1306_auto_update(device, true);
 

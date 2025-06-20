@@ -56,7 +56,7 @@ static void bouncing_bitmap(ssd1306_t device, bool with_status)
 	ssd1306_auto_update(device, false);
 
 	while( true ) {
-		ssd1306_draw(device, &bounds, &spaceship_bmp, NULL);
+		ssd1306_draw(device, &bounds, &spaceship_bmp);
 		ssd1306_auto_update(device, true);
 		ssd1306_auto_update(device, false);
 		ssd1306_clear(device, &bounds);

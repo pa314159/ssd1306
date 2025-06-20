@@ -47,7 +47,7 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_bounds_move_to(&bounds, (ssd1306_point_t){ xmin, posY });
 	ssd1306_auto_update(device, false);
 	while( bounds.x0 >= xmin && bounds.x1 <= xmax ) {
-		ssd1306_draw(device, &bounds, bitmap, NULL);
+		ssd1306_draw(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_IMAGE_TICKS);
 		ssd1306_auto_update(device, false);
@@ -61,7 +61,7 @@ void translate_bitmap(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_bounds_move_to(&bounds, (ssd1306_point_t){ posX, ymin });
 	ssd1306_auto_update(device, false);
 	while( bounds.y0 >= ymin && bounds.y1 <= ymax ) {
-		ssd1306_draw(device, &bounds, bitmap, NULL);
+		ssd1306_draw(device, &bounds, bitmap);
 		ssd1306_auto_update(device, true);
 		vTaskDelayUntil(&ticks, SCREEN_IMAGE_TICKS);
 		ssd1306_auto_update(device, false);
@@ -106,7 +106,7 @@ void app_main(void)
 			ssd1306_text(device, &(ssd1306_bounds_t){ x0: 0, y0: 8*pos, x1: 128, y1: 8*(pos+1) },
 					"SZ:  %2ux%2u",  ssd1306_bounds_width(&bounds), ssd1306_bounds_height(&bounds));
 
-			ssd1306_draw(device, &bounds, &ugly_bitmap, NULL);
+			ssd1306_draw(device, &bounds, &ugly_bitmap);
 			ssd1306_auto_update(device, true);
 			vTaskDelay(pdMS_TO_TICKS(100));
 			ssd1306_auto_update(device, false);

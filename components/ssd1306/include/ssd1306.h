@@ -35,7 +35,7 @@ typedef struct PACKED ssd1306_bounds_t {
 } ssd1306_bounds_t;
 
 typedef struct PACKED ssd1306_bitmap_t {
-	union {
+	const union {
 		struct ssd1306_size_t;
 		ssd1306_size_t size;
 	};
@@ -43,9 +43,9 @@ typedef struct PACKED ssd1306_bitmap_t {
 } ssd1306_bitmap_t;
 
 typedef struct PACKED ssd1306_glyph_t {
-	uint8_t w;
-	uint8_t h;
-	uint8_t image[8];
+	const uint8_t w;
+	const uint8_t h;
+	const uint8_t image[8];
 } ssd1306_glyph_t;
 
 typedef enum {
@@ -189,11 +189,12 @@ void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* bounds);
  * @param device Device handle of the SSD1306 display
  * @param target The bounds of the target rectangle to be drawn
  * @param bitmap The bitmap to be drawn
- * @param offset The origin of the rectangle of the actual bitmap drawn, 
- * 				 cropped from the original bitmap (can be NULL)
+ * @param source An optional rectangle of a cut from the image; can be NULL
  */
 void ssd1306_draw(ssd1306_t device, const ssd1306_bounds_t* target,
-		const ssd1306_bitmap_t* bitmap, const ssd1306_point_t* offset);
+		const ssd1306_bitmap_t* bitmap);
+void ssd1306_draw2(ssd1306_t device, const ssd1306_bitmap_t* bitmap,
+		const ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
 
 /**
  * @brief Draw a bitmap at center

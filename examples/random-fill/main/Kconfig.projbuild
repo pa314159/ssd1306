@@ -33,6 +33,10 @@ menu "Demo App Configuration"
             default DISPLAY0_128x64
             help
                 Select Panel Type.
+            config DISPLAY0_128xXX
+                bool "Default Size"
+                help
+                    Use default panel size as set in SSD1306 menu.
             config DISPLAY0_128x32
                 bool "128x32 Panel"
                 help
@@ -45,6 +49,7 @@ menu "Demo App Configuration"
 
         config DISPLAY0_PANEL_TYPE
             int
+            default -1 if DISPLAY0_128xXX || DISPLAY0_NIL
             default 0 if SSD1306_128x32
             default 1 if SSD1306_128x64
 

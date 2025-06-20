@@ -5,14 +5,13 @@
 
 static void ssd1306_clear_page(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, uint8_t mask);
 
-void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* bounds)
+void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* target)
 {
 	ABORT_IF_NULL(device);
-	ABORT_IF_NULL(bounds);
 
-	ssd1306_bounds_t trimmed = *bounds;
-	
-	if( !ssd1306_trim(device, &trimmed, NULL) ) {
+	ssd1306_bounds_t d_bounds;
+
+	if( !ssd1306_adjust_target_bounds(&d_bounds, device, target) ) {
 		return;
 	}
 	if( !ssd1306_acquire(device) ) {
@@ -21,21 +20,21 @@ void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* bounds)
 		return;
 	}
 
-	ssd1306_clear_internal(device, bounds, &trimmed);
+	ssd1306_clear_internal(device, &d_bounds);
 
-	ssd1306_update(device, &trimmed);
+	ssd1306_update(device, &d_bounds);
 	ssd1306_release(device);
 }
 
-void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed)
+void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* target)
 {
-	const uint16_t trimmed_w = ssd1306_bounds_width(trimmed);
+	const uint16_t trimmed_w = ssd1306_bounds_width(target);
 
-	const uint16_t t_page = trimmed->y0 / 8;
-	const uint16_t t_bits = trimmed->y0 % 8;
+	const uint16_t t_page = target->y0 / 8;
+	const uint16_t t_bits = target->y0 % 8;
 
-	const uint16_t b_page = trimmed->y1 / 8;
-	const uint16_t b_bits = trimmed->y1 % 8;
+	const uint16_t b_page = target->y1 / 8;
+	const uint16_t b_bits = target->y1 % 8;
 
 	const uint8_t t_mask = set_bits(-t_bits);
 	const uint8_t b_mask = set_bits(8 - b_bits);
@@ -46,15 +45,15 @@ void ssd1306_clear_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, co
 	uint8_t page = t_page;
 
 	if( t_bits ) {
-		ssd1306_clear_page(device, page++, trimmed->x0, trimmed_w, t_mask);
+		ssd1306_clear_page(device, page++, target->x0, trimmed_w, t_mask);
 	}
 
 	while( page < b_page ) {
-		ssd1306_clear_page(device, page++, trimmed->x0, trimmed_w, 0);
+		ssd1306_clear_page(device, page++, target->x0, trimmed_w, 0);
 	}
 
 	if( b_bits ) {
-		ssd1306_clear_page(device, page++, trimmed->x0, trimmed_w, b_mask);
+		ssd1306_clear_page(device, page++, target->x0, trimmed_w, b_mask);
 	}
 }
 

@@ -33,8 +33,8 @@ void app_main(void)
 	TickType_t ticks = xTaskGetTickCount();
 	ssd1306_t device = ssd1306_init(NULL);
 
-	ssd1306_bounds_t bnd0 = *ssd1306_status_bounds(device, ssd1306_status_0);
-	ssd1306_bounds_t bnd1 = *ssd1306_status_bounds(device, ssd1306_status_1);
+	ssd1306_bounds_t bnd0 = *ssd1306_status_bounds(device, ssd1306_status_0, NULL);
+	ssd1306_bounds_t bnd1 = *ssd1306_status_bounds(device, ssd1306_status_1, NULL);
 
 	ESP_LOGI(TAG, "bounds [%+d%+d, %+d%+d]", bnd0.x0, bnd0.y0, bnd0.x1, bnd0.y1);
 	ESP_LOGI(TAG, "bounds [%+d%+d, %+d%+d]", bnd1.x0, bnd1.y0, bnd1.x1, bnd1.y1);

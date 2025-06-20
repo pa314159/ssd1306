@@ -220,7 +220,7 @@ menu "SSD1306 Configuration"
         config SSD1306_SPI_PIN_MATCH
             bool "Pins match connector order"
             help
-                Custom PIN assignment matching the order of the SSD1306 connector pins.
+                Custom PIN assignment matching the order of my SSD1306 connector pins.
 
                 Pins are assigned starting with GPIO19 (pin 38) as follows:
                     - D0 / SCLK -> GPIO19

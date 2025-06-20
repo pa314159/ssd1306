@@ -27,7 +27,7 @@ void ssd1306_fill_randomly(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 	esp_fill_random(bitmap->image, bitmap->w * bytes_cap(bitmap->h));
 
-	ssd1306_draw_internal(device, &trimmed, &trimmed, bitmap, &POINT_ZERO);
+	ssd1306_draw_internal(device, &trimmed, &trimmed, bitmap);
 
 	free(bitmap);
 

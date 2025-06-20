@@ -1,6 +1,10 @@
 .*
 !.git?*
 
+*.log
+*.zip
+*.tar
+
 build/
 CMakeFiles/
 

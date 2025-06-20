@@ -1,5 +1,5 @@
 dependencies:
   idf:
     version: ">=5.4"
-  component:
-    path: ../../../component
+  ssd1306:
+    path: ../../../components/ssd1306

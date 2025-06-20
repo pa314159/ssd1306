@@ -16,7 +16,7 @@ static void update_region(ssd1306_int_t dev, const ssd1306_bounds_t* bounds);
 static const status_info_t* update_status(ssd1306_int_t dev, uint8_t index, ssd1306_bounds_t* bounds);
 static void move_status(ssd1306_int_t dev, status_info_t* status, ssd1306_bounds_t* bounds);
 
-inline bool is_move(const status_info_t* status)
+static inline bool is_move(const status_info_t* status)
 {
 	return status && status->state == anim_move;
 }
