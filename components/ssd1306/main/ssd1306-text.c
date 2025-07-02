@@ -30,9 +30,8 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 
 	const ssd1306_bounds_t* bounds = (ssd1306_bounds_t*)si;
 
-	LOG_D("status info at index %u(%u), bounds [(%d, %d) (%d, %d)]",
-		index, status,
-		bounds->x0, bounds->y0, bounds->x1, bounds->y1);
+	LOG_D("status info at index %u(%u)", index, status);
+	LOG_BOUNDS_D("              bounds", bounds);
 
 	ssd1306_clear_internal(device, bounds);
 

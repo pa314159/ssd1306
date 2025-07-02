@@ -22,7 +22,10 @@ bool ssd1306_bounds_check(const ssd1306_bounds_t* bounds)
 void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* source)
 {
 	ABORT_IF_NULL(target);
-	ABORT_IF_NULL(source);
+
+	if( source == NULL ) {
+		return;
+	}
 
 	if( source->x0 < target->x0 ) {
 		target->x0 = source->x0;
@@ -41,7 +44,10 @@ void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* sour
 bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* source)
 {
 	ABORT_IF_NULL(target);
-	ABORT_IF_NULL(source);
+
+	if( source == NULL ) {
+		return true;
+	}
 
 	if( source->x0 > target->x0 ) {
 		target->x0 = source->x0;
@@ -61,6 +67,7 @@ bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* 
 
 uint16_t ssd1306_bounds_width(const ssd1306_bounds_t* bounds)
 {
+	ABORT_IF_NULL(bounds);
 	ABORT_IF(bounds->x1 < bounds->x0, "invalid coordinates x0 = %d, x1 = %d", bounds->x0, bounds->x1);
 
 	return bounds->x1 - bounds->x0;
@@ -68,6 +75,7 @@ uint16_t ssd1306_bounds_width(const ssd1306_bounds_t* bounds)
 
 uint16_t ssd1306_bounds_height(const ssd1306_bounds_t* bounds)
 {
+	ABORT_IF_NULL(bounds);
 	ABORT_IF(bounds->y1 < bounds->y0, "invalid coordinates y0 = %d, y1 = %d", bounds->y0, bounds->y1);
 
 	return bounds->y1 - bounds->y0;
@@ -75,6 +83,8 @@ uint16_t ssd1306_bounds_height(const ssd1306_bounds_t* bounds)
 
 void ssd1306_bounds_resize(ssd1306_bounds_t* target, const ssd1306_size_t size)
 {
+	ABORT_IF_NULL(target);
+
 	target->x1 = target->x0 + size.w;
 	target->y1 = target->y0 + size.h;
 }
@@ -104,5 +114,7 @@ void ssd1306_bounds_move_by(ssd1306_bounds_t* target, const ssd1306_point_t offs
 
 ssd1306_point_t ssd1306_bounds_center(const ssd1306_bounds_t* bounds)
 {
+	ABORT_IF_NULL(bounds);
+
 	return (ssd1306_point_t){ (bounds->x0 + bounds->x1) / 2, (bounds->y0 + bounds->y1) / 2 };
 }

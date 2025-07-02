@@ -8,24 +8,22 @@ static void ssd1306_draw_page_1(ssd1306_t device,
 static void ssd1306_draw_page_2(ssd1306_t device,
 	uint8_t page, int16_t offset, uint16_t width, const uint8_t* data, int8_t bits, uint8_t d_mask);
 
-static inline bool adjust_source_bounds(ssd1306_bounds_t* bounds,
+static inline bool adjust_source_bounds(ssd1306_bounds_t* target,
 	const ssd1306_bitmap_t* bitmap,
 	const ssd1306_bounds_t* source)
 {
-	bounds->head = POINT_ZERO;
+	target->head = POINT_ZERO;
 
-	ssd1306_bounds_resize(bounds, bitmap->size);
+	ssd1306_bounds_resize(target, bitmap->size);
 
-	if( source != NULL && !ssd1306_bounds_intersect(bounds, source) ) {
-		LOG_V("not visible, s_bounds: [%+d%+d, %+d%+d), source: [%+d%+d, %+d%+d)",
-			bounds->x0, bounds->y0, bounds->x1, bounds->y1,
-			source->x0, source->y0, source->x1, source->y1);
+	if( source != NULL && !ssd1306_bounds_intersect(target, source) ) {
+		LOG_BOUNDS_D("non visible target", target);
+		LOG_BOUNDS_D("            source", source);
 
 		return false;
 	}
 
-	LOG_V("s_bounds: [%+d%+d, %+d%+d)",
-		bounds->x0, bounds->y0, bounds->x1, bounds->y1);
+	LOG_BOUNDS_V("target", target);
 
 	return true;
 }
@@ -37,14 +35,11 @@ static inline bool adjust_both_bounds(ssd1306_bounds_t* target, ssd1306_bounds_t
 	ssd1306_bounds_move_to(&s_temp, target->head);
 
 	if( ssd1306_bounds_intersect(target, &s_temp) ) {
-		LOG_V("d_bounds: [%+d%+d, %+d%+d)",
-			target->x0, target->y0, target->x1, target->y1);
-		LOG_V("s_bounds: [%+d%+d, %+d%+d)",
-			source->x0, source->y0, source->x1, source->y1);
+		LOG_BOUNDS_V("target", target);
+		LOG_BOUNDS_V("source", source);
 	} else {
-		LOG_W("weird, not visible, d_bounds: [%+d%+d, %+d%+d), s_bounds: [%+d%+d, %+d%+d)",
-			target->x0, target->y0, target->x1, target->y1,
-			source->x0, source->y0, source->x1, source->y1);
+		LOG_BOUNDS_W("weird case, target", target);
+		LOG_BOUNDS_W("            source", source);
 
 		return false;
 	}

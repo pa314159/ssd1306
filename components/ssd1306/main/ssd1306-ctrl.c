@@ -114,14 +114,11 @@ void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 #endif
 #if CONFIG_SSD1306_OPTIMIZE
 		if( bounds ) {
-			LOG_D("enqueue bounds [%+d%+d, %+d%+d]",
-				bounds->x0, bounds->y0, bounds->x1, bounds->y1);
+			LOG_BOUNDS_D("enqueue explicit bounds", bounds);
 
 			xQueueSend(dev->queue, bounds, portMAX_DELAY);
 		} else if( dev->dirty_bounds ) {
-			LOG_D("enqueue dirty bounds [%+d%+d, %+d%+d]",
-				dev->dirty_bounds->x0, dev->dirty_bounds->y0,
-				dev->dirty_bounds->x1, dev->dirty_bounds->y1);
+			LOG_BOUNDS_D("enqueue dirty bounds", dev->dirty_bounds);
 
 			xQueueSend(dev->queue, dev->dirty_bounds, portMAX_DELAY);
 
@@ -129,9 +126,7 @@ void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 			dev->dirty_bounds = NULL;
 		} else {
-			LOG_D("enqueue device bounds [%+d%+d, %+d%+d]",
-				dev->bounds.x0, dev->bounds.y0,
-				dev->bounds.x1, dev->bounds.y1);
+			LOG_BOUNDS_D("enqueue device bounds", dev->bounds);
 
 			xQueueSend(dev->queue, &dev->bounds, portMAX_DELAY);
 		}
