@@ -69,10 +69,9 @@ static void bouncing_bitmap(ssd1306_t device)
 		const ssd1306_bitmap_t* bm = speed.y < 0 ? &spaceship_asc : &spaceship_dsc;
 
 		ssd1306_draw(device, &bounds, bm);
-		ssd1306_auto_update(device, true);
-		ssd1306_auto_update(device, false);
-		ssd1306_clear(device, &bounds);
+		ssd1306_update(device);
 
+		ssd1306_clear(device, &bounds);
 		ssd1306_bounds_move_by(&bounds, speed);
 
 		if( (speed.x < 0 && bounds.x0 < limits.x0) || (speed.x > 0 && bounds.x1 > limits.x1) ) {

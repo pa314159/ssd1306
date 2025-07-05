@@ -31,6 +31,6 @@ void ssd1306_fill_randomly(ssd1306_t device, const ssd1306_bounds_t* bounds)
 
 	free(bitmap);
 
-	ssd1306_update(device, &target);
+	ssd1306_update_internal(device, &target);
 	ssd1306_release(device);
 }

@@ -54,19 +54,20 @@ void shrink_black_rectangle(ssd1306_t device, TickType_t* ticks)
 
 	ssd1306_grab(device, &bounds, bitmap);
 
+	ssd1306_auto_update(device, false);
 	while( bounds.x0 <= dim && bounds.y0 <= dim ) {
-		ssd1306_auto_update(device, false);
 		ssd1306_draw(device, &device->bounds, bitmap);
+		ssd1306_update(device);
+
+		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
 		ssd1306_clear(device, &bounds);
-		ssd1306_auto_update(device, true);
 
 		bounds.x0++;
 		bounds.y0++;
 		bounds.x1--;
 		bounds.y1--;
-
-		vTaskDelayUntil(ticks, pdMS_TO_TICKS(FRAME_MILLIS));
 	}
+	ssd1306_auto_update(device, true);
 
 	free(bitmap);
 	vTaskDelayUntil(ticks, pdMS_TO_TICKS(PAUSE_MILLIS));

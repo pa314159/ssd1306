@@ -58,7 +58,7 @@ void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* forma
 		}
 	}
 
-	ssd1306_update(device, bounds);
+	ssd1306_update_internal(device, bounds);
 	ssd1306_release(device);
 }
 
@@ -141,7 +141,7 @@ void ssd1306_text_internal(ssd1306_t device, const ssd1306_bounds_t* bounds, con
 
 	free(bitmap);
 
-	ssd1306_update(device, &trimmed);
+	ssd1306_update_internal(device, &trimmed);
 	ssd1306_release(device);
 }
 

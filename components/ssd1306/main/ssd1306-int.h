@@ -52,7 +52,11 @@ void ssd1306_task(ssd1306_int_t dev);
 void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* buff, uint16_t size);
 bool ssd1306_trim(ssd1306_t device, ssd1306_bounds_t* bounds, const ssd1306_size_t* size);
 
-bool ssd1306_adjust_target_bounds(ssd1306_bounds_t* bounds, ssd1306_t device, const ssd1306_bounds_t* narrow);
+bool ssd1306_adjust_target_bounds(ssd1306_bounds_t* bounds,
+	ssd1306_t device, const ssd1306_bounds_t* narrow);
+
+void ssd1306_update_internal(ssd1306_t device,
+		const ssd1306_bounds_t* bounds);
 
 void ssd1306_clear_internal(ssd1306_t device,
 		const ssd1306_bounds_t* target);

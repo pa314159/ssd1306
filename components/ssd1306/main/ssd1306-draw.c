@@ -72,7 +72,8 @@ void ssd1306_draw2(ssd1306_t device, const ssd1306_bitmap_t* bitmap,
 		return;
 	}
 
-	ssd1306_update(device, &d_bounds);
+	ssd1306_update_internal(device, &d_bounds);
+
 	ssd1306_release(device);
 }
 
@@ -95,8 +96,8 @@ void ssd1306_draw(ssd1306_t device, const ssd1306_bounds_t* target,
 	}
 
 	ssd1306_draw_internal(device, target, &trimmed, bitmap);
+	ssd1306_update_internal(device, &trimmed);
 
-	ssd1306_update(device, &trimmed);
 	ssd1306_release(device);
 }
 
@@ -115,8 +116,8 @@ void ssd1306_draw_c(ssd1306_t device, const ssd1306_bitmap_t* bitmap)
 	ssd1306_center_bounds(device, &bounds, bitmap);
 
 	ssd1306_draw_internal(device, &bounds, &bounds, bitmap);
+	ssd1306_update_internal(device, &bounds);
 
-	ssd1306_update(device, &bounds);
 	ssd1306_release(device);
 }
 

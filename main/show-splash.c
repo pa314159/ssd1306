@@ -37,8 +37,9 @@ void app_main(void)
 	}
 
 	ssd1306_clear(device, NULL);
-	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(500));
+	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(100));
 	ssd1306_fill_randomly(device, NULL);
+	vTaskDelayUntil(&ticks, pdMS_TO_TICKS(1000));
 
 	esp_restart();
 }

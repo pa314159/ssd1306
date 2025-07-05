@@ -21,8 +21,8 @@ void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* target)
 	}
 
 	ssd1306_clear_internal(device, &d_bounds);
+	ssd1306_update_internal(device, &d_bounds);
 
-	ssd1306_update(device, &d_bounds);
 	ssd1306_release(device);
 }
 

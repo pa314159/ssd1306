@@ -13,6 +13,8 @@ extern "C" {
 #define PACKED __attribute__((packed))
 #endif
 
+#define _Nullable
+
 typedef struct PACKED ssd1306_point_t {
 	int16_t x, y;
 } ssd1306_point_t;
@@ -139,7 +141,7 @@ extern const ssd1306_bitmap_t* splash_bmp;
 
 // initialisation
 ssd1306_init_t ssd1306_create_init(ssd1306_interface_t type); // returned pointer can be freed after initialisation
-ssd1306_t      ssd1306_init(ssd1306_init_t init); // pass NULL to use the default configuration
+ssd1306_t      ssd1306_init(ssd1306_init_t _Nullable init); // pass NULL to use the default configuration
 
 #if __SSD1306_FREE
 void           ssd1306_free(ssd1306_t device);
@@ -151,11 +153,33 @@ void ssd1306_invert(ssd1306_t device, bool on);
 void ssd1306_contrast(ssd1306_t device, uint8_t contrast);
 
 // lower level
+/**
+ * @brief Turns the auto-update on or off.
+ *
+ * @param device Device handle of the SSD1306 display
+ */
 void ssd1306_auto_update(ssd1306_t device, bool on);
 
+/**
+ * @brief Enforce an update of the device even though the auto update is off.
+ *
+ * @param device Device handle of the SSD1306 display
+ */
+void ssd1306_update(ssd1306_t device);
+
+/**
+ * @brief Acquire exclusive access to the device.
+ *
+ * @param device Device handle of the SSD1306 display
+ */
 bool ssd1306_acquire(ssd1306_t device);
+
+/**
+ * @brief Release the exclusive access to the device.
+ *
+ * @param device Device handle of the SSD1306 display
+ */
 void ssd1306_release(ssd1306_t device);
-void ssd1306_update(ssd1306_t device, const ssd1306_bounds_t* bounds);
 
 // lowest level
 uint8_t* ssd1306_raster(ssd1306_t device, uint8_t page);
@@ -164,8 +188,8 @@ ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...)
 uint16_t ssd1306_text_width(ssd1306_t device, const char* text);
 
 // geometry
-void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
-bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
+void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* _Nullable source);
+bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* _Nullable source);
 void ssd1306_bounds_resize(ssd1306_bounds_t* target, const ssd1306_size_t size);
 void ssd1306_bounds_move_to(ssd1306_bounds_t* target, const ssd1306_point_t origin);
 void ssd1306_bounds_move_by(ssd1306_bounds_t* target, const ssd1306_point_t offset);
@@ -181,20 +205,24 @@ ssd1306_point_t ssd1306_bounds_center(const ssd1306_bounds_t* bounds);
  * @param device Device handle of the SSD1306 display
  * @param bounds The bounds of the rectangle to be cleared
  */
-void ssd1306_clear(ssd1306_t device, const ssd1306_bounds_t* bounds);
+void ssd1306_clear(ssd1306_t device,
+		const ssd1306_bounds_t* _Nullable bounds);
 
+void ssd1306_draw(ssd1306_t device,
+		const ssd1306_bounds_t* _Nullable target,
+		const ssd1306_bitmap_t* bitmap);
 /**
- * @brief Crop and draw a bitmap.
+ * @brief Draw a bitmap.
  *
  * @param device Device handle of the SSD1306 display
- * @param target The bounds of the target rectangle to be drawn
  * @param bitmap The bitmap to be drawn
- * @param source An optional rectangle of a cut from the image; can be NULL
+ * @param target The bounds of the target rectangle to be drawn
+ * @param source An optional rectangle of a cut of the image
  */
-void ssd1306_draw(ssd1306_t device, const ssd1306_bounds_t* target,
-		const ssd1306_bitmap_t* bitmap);
-void ssd1306_draw2(ssd1306_t device, const ssd1306_bitmap_t* bitmap,
-		const ssd1306_bounds_t* target, const ssd1306_bounds_t* source);
+void ssd1306_draw2(ssd1306_t device,
+		const ssd1306_bitmap_t* bitmap,
+		const ssd1306_bounds_t* _Nullable target,
+		const ssd1306_bounds_t* _Nullable source);
 
 /**
  * @brief Draw a bitmap at center
@@ -202,7 +230,8 @@ void ssd1306_draw2(ssd1306_t device, const ssd1306_bitmap_t* bitmap,
  * @param device Device handle of the SSD1306 display
  * @param bitmap The bitmap to be drawn
 */
-void ssd1306_draw_c(ssd1306_t device, const ssd1306_bitmap_t* bitmap);
+void ssd1306_draw_c(ssd1306_t device,
+		const ssd1306_bitmap_t* bitmap);
 
 /**
  * @brief Grab the display content into a bitmap.
@@ -224,8 +253,11 @@ void ssd1306_grab_c(ssd1306_t device, ssd1306_bitmap_t* bitmap);
 
 void ssd1306_text(ssd1306_t device, const ssd1306_bounds_t* target, const char* format, ...);
 
-void ssd1306_status(ssd1306_t device, ssd1306_status_t status, const char* format, ...);
-const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status, ssd1306_bounds_t* target);
+void ssd1306_status(ssd1306_t device, ssd1306_status_t status,
+		const char* format, ...);
+const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t status,
+		ssd1306_bounds_t* _Nullable target);
+
 void ssd1306_center_bounds(ssd1306_t device, ssd1306_bounds_t* target, const ssd1306_bitmap_t* bitmap);
 
 #if defined(__cplusplus)

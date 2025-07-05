@@ -124,7 +124,7 @@ ssd1306_t ssd1306_init(ssd1306_init_t init)
 	}
 
 #if CONFIG_SSD1306_OPTIMIZE || !CONFIG_SSD1306_SPLASH
-	ssd1306_update((ssd1306_t)dev, NULL);
+	ssd1306_update((ssd1306_t)dev);
 #endif
 
 #if CONFIG_SSD1306_SPLASH > 0
