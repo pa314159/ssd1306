@@ -158,7 +158,7 @@ void app_main(void)
 
 	// 	ssd1306_text(device, 4, 32, 124, 8, text);
 
-	// 	ssd1306_log_set_level(ESP_LOG_VERBOSE);
+	// 	ssd1306_log_set_level(ESP_LOG_TERBOSE);
 	// 	ssd1306_draw(device, &bounds, &ugly_bitmap);
 	// 	ssd1306_auto_update(device, true);
 	// 	ssd1306_log_set_level(CONFIG_SSD1306_LOGGING_LEVEL);

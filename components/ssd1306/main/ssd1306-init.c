@@ -34,13 +34,13 @@ ssd1306_init_t ssd1306_create_init(ssd1306_interface_t type)
 
 ssd1306_t ssd1306_init(ssd1306_init_t init)
 {
-	ssd1306_log_set_level(CONFIG_SSD1306_LOGGING_LEVEL);
+	ssd1306_log_level(CONFIG_SSD1306_LOGGING_LEVEL);
 
 	LOG_E("LOG_E is active");
 	LOG_W("LOG_W is active");
 	LOG_I("LOG_I is active");
 	LOG_D("LOG_D is active");
-	LOG_V("LOG_V is active");
+	LOG_T("LOG_T is active");
 
 	if( init == NULL ) {
 		init = ssd1306_create_init(ssd1306_interface_any);

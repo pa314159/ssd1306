@@ -86,13 +86,13 @@ void ssd1306_grab_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_
 	const uint8_t* buff = ssd1306_raster(device, page) + offset;
 
 	if( d_mask == 0xff && s_bits == 0 ) {
-		LOG_V("get page %d from %p", page, data);
+		LOG_T("get page %d from %p", page, data);
 
 		memcpy(data, buff, width);
 	} else {
 		const uint8_t s_mask = ~d_mask;
 
-		LOG_V("get page %d with d_mask 0x%02x, s_bits = %+d, s_mask = 0x%02x, from %p", page, d_mask, s_bits, s_mask, data);
+		LOG_T("get page %d with d_mask 0x%02x, s_bits = %+d, s_mask = 0x%02x, from %p", page, d_mask, s_bits, s_mask, data);
 
 		ssd1306_dump(buff, width, "Raster buff");
 

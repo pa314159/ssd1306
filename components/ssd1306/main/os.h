@@ -21,8 +21,6 @@ extern "C" {
 #define SSD1306_SEM_TIMEOUT 500
 #define SSD1306_SEM_TICKS pdMS_TO_TICKS(SSD1306_SEM_TIMEOUT)
 
-#define _countof(x) (sizeof(x)/sizeof(x[0]))
-
 typedef struct ssd1306_int_s* ssd1306_int_t;
 typedef struct ssd1306_iic_s* ssd1306_iic_t;
 typedef struct ssd1306_spi_s* ssd1306_spi_t;
@@ -37,25 +35,6 @@ ssd1306_spi_t ssd1306_spi_init(ssd1306_init_t init);
 
 void ssd1306_iic_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size);
 void ssd1306_spi_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size);
-
-void ssd1306_log_set_level(uint8_t level);
-uint8_t ssd1306_log_get_level();
-void ssd1306_log(uint8_t level, const char* function, int line, const char* format, ...);
-
-#define LOG_ENABLED(level) \
-	_ESP_LOG_ENABLED(level) && ssd1306_log_get_level() >= level
-#define LOG_INVOKE(level, format, ...) \
-	do { \
-		if( LOG_ENABLED(level) ) { \
-			ssd1306_log(level, __FUNCTION__, __LINE__, format, ##__VA_ARGS__); \
-		} \
-	} while( 0 )
-
-#define LOG_E(format, ...) LOG_INVOKE(ESP_LOG_ERROR, format, ##__VA_ARGS__)
-#define LOG_W(format, ...) LOG_INVOKE(ESP_LOG_WARN, format, ##__VA_ARGS__)
-#define LOG_I(format, ...) LOG_INVOKE(ESP_LOG_INFO, format, ##__VA_ARGS__)
-#define LOG_D(format, ...) LOG_INVOKE(ESP_LOG_DEBUG, format, ##__VA_ARGS__)
-#define LOG_V(format, ...) LOG_INVOKE(ESP_LOG_VERBOSE, format, ##__VA_ARGS__)
 
 #define ABORT_IF(condition, format, ...) \
 	do { \

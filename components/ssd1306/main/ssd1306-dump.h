@@ -10,7 +10,7 @@ void ssd1306_dump_it(const void* data, uint16_t size, const char* format, ...);
 
 #define ssd1306_dump(data, size, format, ...) \
 	do { \
-		if( _ESP_LOG_ENABLED(ESP_LOG_VERBOSE) && (esp_log_level_get(LOG_DOMAIN) >= ESP_LOG_VERBOSE) ) { \
+		if( LOG_ENABLED(SSD1306_LOG_TRACE) ) { \
 			ssd1306_dump_it(data, size, format, ##__VA_ARGS__); \
 		} \
 	} while( 0 )

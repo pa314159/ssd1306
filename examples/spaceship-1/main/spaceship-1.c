@@ -2,10 +2,10 @@
 
 #include <stdio.h>
 #include <ssd1306.h>
+#include <ssd1306-log.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_log.h>
 #include <esp_random.h>
 #include <esp_timer.h>
 
@@ -21,11 +21,11 @@ static const ssd1306_bitmap_t spaceship_bmp = {
 	},
 };
 
-inline int signum_of(int x)
+static inline int signum_of(int x)
 {
 	return (x > 0) - (x < 0);
 }
-inline int random_01()
+static inline int random_01()
 {
 	return esp_random() & 1;
 }
@@ -39,7 +39,7 @@ static void bouncing_bitmap(ssd1306_t device, bool with_status)
 		y1: device->h - (with_status ? 16 - limits.y0 : 0),
 	};
 
-	ESP_LOGI("MAIN", "Universe [+%d+%d, %+d%+d]", limits.x0, limits.y0, limits.x1, limits.y1);
+	LOG_BOUNDS_I("Universe", &limits);
 
 	ssd1306_bounds_t bounds = limits;
 	ssd1306_bounds_resize(&bounds, spaceship_bmp.size);
@@ -86,6 +86,8 @@ static void bouncing_bitmap(ssd1306_t device, bool with_status)
 			ssd1306_status(device, ssd1306_status_1,
 				"T \x07%6.2fms\x07 Y \x07%3d", time_average, position.y);
 		}
+
+		vTaskDelay(pdMS_TO_TICKS(2000));
 	}
 }
 
@@ -94,7 +96,7 @@ void app_main(void)
 	ssd1306_t device = ssd1306_init(NULL);
 
 	ssd1306_clear(device, &device->bounds);
-	bouncing_bitmap(device, device->h == 64);
+	bouncing_bitmap(device, false);
 
 	esp_restart();
 }

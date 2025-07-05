@@ -99,7 +99,7 @@ const status_info_t* update_status(ssd1306_int_t dev, uint8_t index, ssd1306_bou
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough="
 	switch( status->state ) {
 		case anim_init: {
-			LOG_V("state = anim_init");
+			LOG_T("state = anim_init");
 
 			status->offset = 0;
 			status->ticks = xTaskGetTickCount();
@@ -119,7 +119,7 @@ const status_info_t* update_status(ssd1306_int_t dev, uint8_t index, ssd1306_bou
 		} // break-through
 
 		case anim_move: {
-			// LOG_V("state = anim_move, offset = %d", status->offset);
+			// LOG_T("state = anim_move, offset = %d", status->offset);
 
 			move_status(dev, status, bounds);
 
@@ -163,7 +163,7 @@ void move_status(ssd1306_int_t dev, status_info_t* status, ssd1306_bounds_t* bou
 
 void ssd1306_send_buff(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint16_t size)
 {
-	LOG_V("data = %p, size = %u", data, size);
+	LOG_T("data = %p, size = %u", data, size);
 
 	switch( dev->connection.type ) {
 		case ssd1306_interface_iic:

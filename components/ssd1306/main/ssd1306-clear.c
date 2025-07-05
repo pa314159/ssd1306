@@ -62,11 +62,11 @@ void ssd1306_clear_page(ssd1306_t device, uint8_t page, int16_t offset, uint16_t
 	uint8_t* buff = ssd1306_raster(device, page) + offset;
 
 	if( mask == 0 ) {
-		LOG_V("clear page %d", page);
+		LOG_T("clear page %d", page);
 
 		memset(buff, 0, width);
 	} else {
-		LOG_V("clear page %d with mask 0x%02x", page, mask);
+		LOG_T("clear page %d with mask 0x%02x", page, mask);
 
 		for( unsigned x = 0; x < width; x++ ) {
 			buff[x] &= mask;

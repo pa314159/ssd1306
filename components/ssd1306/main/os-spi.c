@@ -129,7 +129,7 @@ void ssd1306_spi_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint1
 
 			gpio_set_level(dev->connection.cs, SPI_DATA_MODE);
 
-			LOG_V("gpio %d set to %d", dev->connection.cs, SPI_DATA_MODE);
+			LOG_T("gpio %d set to %d", dev->connection.cs, SPI_DATA_MODE);
 			break;
 
 		case OLED_CTL_COMMAND:
@@ -137,7 +137,7 @@ void ssd1306_spi_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint1
 
 			gpio_set_level(dev->connection.cs, SPI_COMM_MODE);
 
-			LOG_V("gpio %d set to %d", dev->connection.cs, SPI_COMM_MODE);
+			LOG_T("gpio %d set to %d", dev->connection.cs, SPI_COMM_MODE);
 			break;
 
 		default: {

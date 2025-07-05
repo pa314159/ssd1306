@@ -1,6 +1,10 @@
 #if !defined(__SSD1306_MISC_H)
 #define __SSD1306_MISC_H
 
+#if !defined(__SSD1306_H)
+#error must include <ssd1306.h> first
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

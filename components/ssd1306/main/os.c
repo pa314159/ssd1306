@@ -8,17 +8,37 @@
 
 const char LOG_DOMAIN[] = "SSD1306";
 
-void ssd1306_log_set_level(uint8_t level)
+static inline esp_log_level_t to_esp_log_level(ssd1306_log_level_t level)
 {
-	esp_log_level_set(LOG_DOMAIN, (esp_log_level_t)level);
+	if( level <= SSD1306_LOG_OFF ) {
+		return ESP_LOG_NONE;
+	}
+	if( level <= SSD1306_LOG_ERROR ) {
+		return ESP_LOG_ERROR;
+	}
+	if( level >= SSD1306_LOG_ALL ) {
+		return ESP_LOG_MAX;
+	}
+
+	return ESP_LOG_ERROR + (level - SSD1306_LOG_ERROR);
 }
 
-uint8_t ssd1306_log_get_level()
+void ssd1306_log_level(ssd1306_log_level_t level)
 {
-	return esp_log_level_get(LOG_DOMAIN);
+	const esp_log_level_t esp_log_level = to_esp_log_level(level);
+
+	esp_log_level_set(LOG_DOMAIN, esp_log_level);
 }
 
-void ssd1306_log(uint8_t level, const char* function, int line, const char* format, ...)
+bool ssd1306_log_enabled(ssd1306_log_level_t level)
+{
+	const esp_log_level_t check = to_esp_log_level(level);
+	const esp_log_level_t limit = esp_log_level_get(LOG_DOMAIN);
+
+	return check <= limit;
+}
+
+void ssd1306_log(ssd1306_log_level_t level, const char* function, int line, const char* format, ...)
 {
 	static const char PREFIXES[] = { '\0', 'E', 'W', 'I', 'D', 'V' };
 	static const char* COLORS[] = {
@@ -38,20 +58,22 @@ void ssd1306_log(uint8_t level, const char* function, int line, const char* form
 #endif
 	};
 
-	assert(level < _countof(PREFIXES));
-	assert(level < _countof(COLORS));
+	const esp_log_level_t esp_log_level = to_esp_log_level(level);
+
+	ABORT_IF(esp_log_level >= _countof(PREFIXES), "level %d is exceeding prefixes count", esp_log_level);
+	ABORT_IF(esp_log_level >= _countof(COLORS), "level %d is exceeding colors count", esp_log_level);
 
 	const char* task_name = pcTaskGetName(NULL);
 
-	esp_log_write(level, LOG_DOMAIN, "%s%c [%s] (%s) %s[%s:%d]: ", 
-		COLORS[level], PREFIXES[level],  esp_log_system_timestamp(),
+	esp_log_write(esp_log_level, LOG_DOMAIN, "%s%c [%s] (%s) %s[%s:%d]: ", 
+		COLORS[esp_log_level], PREFIXES[esp_log_level],  esp_log_system_timestamp(),
 		task_name, LOG_DOMAIN, function, line);
 
     va_list list;
 
     va_start(list, format);
-    esp_log_writev(level, LOG_DOMAIN, format, list);
+    esp_log_writev(esp_log_level, LOG_DOMAIN, format, list);
     va_end(list);
 
-	esp_log_write(level, LOG_DOMAIN, "\n" LOG_ANSI_COLOR_RESET);
+	esp_log_write(esp_log_level, LOG_DOMAIN, "\n" LOG_ANSI_COLOR_RESET);
 }

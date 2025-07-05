@@ -23,7 +23,7 @@ static inline bool adjust_source_bounds(ssd1306_bounds_t* target,
 		return false;
 	}
 
-	LOG_BOUNDS_V("target", target);
+	LOG_BOUNDS_T("target", target);
 
 	return true;
 }
@@ -35,8 +35,8 @@ static inline bool adjust_both_bounds(ssd1306_bounds_t* target, ssd1306_bounds_t
 	ssd1306_bounds_move_to(&s_temp, target->head);
 
 	if( ssd1306_bounds_intersect(target, &s_temp) ) {
-		LOG_BOUNDS_V("target", target);
-		LOG_BOUNDS_V("source", source);
+		LOG_BOUNDS_T("target", target);
+		LOG_BOUNDS_T("source", source);
 	} else {
 		LOG_BOUNDS_W("weird case, target", target);
 		LOG_BOUNDS_W("            source", source);
@@ -170,7 +170,7 @@ void ssd1306_draw_internal(ssd1306_t device,
 
 void ssd1306_draw_page_1(ssd1306_t device, uint8_t page, int16_t offset, uint16_t width, const uint8_t* data, int8_t s_bits)
 {
-	LOG_V("page %d with s_bits = %+d", page, s_bits);
+	LOG_T("page %d with s_bits = %+d", page, s_bits);
 
 	ssd1306_draw_page_2(device, page, offset, width, data, s_bits, set_bits(s_bits));
 }
@@ -180,13 +180,13 @@ void ssd1306_draw_page_2(ssd1306_t device, uint8_t page, int16_t offset, uint16_
 	uint8_t* buff = ssd1306_raster(device, page) + offset;
 
 	if( d_mask == 0xff && s_bits == 0 ) {
-		LOG_V("page %d from %p", page, data);
+		LOG_T("page %d from %p", page, data);
 
 		memcpy(buff, data, width);
 	} else {
 		const uint8_t s_mask = ~d_mask;
 
-		LOG_V("page %d with d_mask 0x%02x, s_bits = %+d, s_mask = 0x%02x, from %p", page, d_mask, s_bits, s_mask, data);
+		LOG_T("page %d with d_mask 0x%02x, s_bits = %+d, s_mask = 0x%02x, from %p", page, d_mask, s_bits, s_mask, data);
 
 		ssd1306_dump(data, width, "Source buff");
 

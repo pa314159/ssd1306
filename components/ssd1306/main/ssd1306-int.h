@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ssd1306-log.h>
 #include "os.h"
 
 #define SSD1306_TEXT_HEIGHT 8
@@ -66,13 +67,6 @@ void ssd1306_draw_internal(ssd1306_t device,
 void ssd1306_grab_internal(ssd1306_t device, 
 		const ssd1306_bounds_t* bounds, const ssd1306_bounds_t* trimmed,
 		ssd1306_bitmap_t* bitmap);
-
-#define LOG_BOUNDS_D(message, bounds) \
-	LOG_D(message ": [%+d%+d, %+d%+d)", (bounds)->x0, (bounds)->y0, (bounds)->x1, (bounds)->y1)
-#define LOG_BOUNDS_V(message, bounds) \
-	LOG_V(message ": [%+d%+d, %+d%+d)", (bounds)->x0, (bounds)->y0, (bounds)->x1, (bounds)->y1)
-#define LOG_BOUNDS_W(message, bounds) \
-	LOG_W(message ": [%+d%+d, %+d%+d)", (bounds)->x0, (bounds)->y0, (bounds)->x1, (bounds)->y1)
 
 #if CONFIG_COMPILER_OPTIMIZATION_NONE
 #define inline inline static

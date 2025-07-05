@@ -12,8 +12,12 @@ extern "C" {
 #if !defined(PACKED)
 #define PACKED __attribute__((packed))
 #endif
-
+#if !defined(_Nullable)
 #define _Nullable
+#endif
+#if !defined(_countof)
+#define _countof(x) (sizeof(x)/sizeof((x)[0]))
+#endif
 
 typedef struct PACKED ssd1306_point_t {
 	int16_t x, y;
@@ -259,6 +263,7 @@ const ssd1306_bounds_t* ssd1306_status_bounds(ssd1306_t device, ssd1306_status_t
 		ssd1306_bounds_t* _Nullable target);
 
 void ssd1306_center_bounds(ssd1306_t device, ssd1306_bounds_t* target, const ssd1306_bitmap_t* bitmap);
+
 
 #if defined(__cplusplus)
 }

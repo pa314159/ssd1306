@@ -5,7 +5,7 @@ menu "SSD1306 Configuration"
         prompt "Logging level"
         default SSD1306_LOGGING_LEVEL_INFO
 
-        config SSD1306_LOGGING_LEVEL_NONE
+        config SSD1306_LOGGING_LEVEL_OFF
             bool "No output"
         config SSD1306_LOGGING_LEVEL_ERROR
             bool "Error"
@@ -15,18 +15,19 @@ menu "SSD1306 Configuration"
             bool "Info"
         config SSD1306_LOGGING_LEVEL_DEBUG
             bool "Debug"
-        config SSD1306_LOGGING_LEVEL_VERBOSE
-            bool "Verbose"
+        config SSD1306_LOGGING_LEVEL_TRACE
+            bool "Trace"
     endchoice
 
     config SSD1306_LOGGING_LEVEL
         int
-        default 0 if SSD1306_LOGGING_LEVEL_NONE
-        default 1 if SSD1306_LOGGING_LEVEL_ERROR
-        default 2 if SSD1306_LOGGING_LEVEL_WARN
-        default 3 if SSD1306_LOGGING_LEVEL_INFO
-        default 4 if SSD1306_LOGGING_LEVEL_DEBUG
-        default 5 if SSD1306_LOGGING_LEVEL_VERBOSE
+        default 0 if SSD1306_LOGGING_LEVEL_OFF
+        default 1 if SSD1306_LOGGING_LEVEL_FATAL
+        default 2 if SSD1306_LOGGING_LEVEL_ERROR
+        default 3 if SSD1306_LOGGING_LEVEL_WARN
+        default 4 if SSD1306_LOGGING_LEVEL_INFO
+        default 5 if SSD1306_LOGGING_LEVEL_DEBUG
+        default 6 if SSD1306_LOGGING_LEVEL_TRACE
 
     choice
         prompt "Panel Type"
