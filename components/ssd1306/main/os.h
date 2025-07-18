@@ -40,10 +40,11 @@ void ssd1306_spi_send(ssd1306_int_t dev, uint8_t ctl, const uint8_t* data, uint1
 	do { \
 		if( condition ) { \
 			LOG_INVOKE(ESP_LOG_ERROR, format, ##__VA_ARGS__); \
-			esp_system_abort("execution stopped due to failed condition"); \
+			esp_system_abort("execution stopped due to failed condition: '" #condition "'"); \
 		} \
 	} while( 0 )
-#define ABORT_IF_NULL(param) ABORT_IF(param == NULL, "parameter '" #param "' is NULL")
+#define ABORT_IF_NULL(param) ABORT_IF(param == NULL, "value of '" #param "' is NULL")
+#define ABORT_IF_NOT_NULL(param) ABORT_IF(param != NULL, "value of '" #param "' is NOT NULL")
 
 #if 0
 void ssd1306_iic_free(ssd1306_iic_t dev);

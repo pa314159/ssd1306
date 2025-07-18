@@ -192,11 +192,11 @@ ssd1306_bitmap_t* ssd1306_text_bitmap(ssd1306_t device, const char* format, ...)
 uint16_t ssd1306_text_width(ssd1306_t device, const char* text);
 
 // geometry
-void ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* _Nullable source);
-bool ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* _Nullable source);
-void ssd1306_bounds_resize(ssd1306_bounds_t* target, const ssd1306_size_t size);
-void ssd1306_bounds_move_to(ssd1306_bounds_t* target, const ssd1306_point_t origin);
-void ssd1306_bounds_move_by(ssd1306_bounds_t* target, const ssd1306_point_t offset);
+ssd1306_bounds_t* ssd1306_bounds_union(ssd1306_bounds_t* target, const ssd1306_bounds_t* _Nullable source);
+ssd1306_bounds_t* ssd1306_bounds_intersect(ssd1306_bounds_t* target, const ssd1306_bounds_t* _Nullable source);
+ssd1306_bounds_t* ssd1306_bounds_resize(ssd1306_bounds_t* target, const ssd1306_size_t size);
+ssd1306_bounds_t* ssd1306_bounds_move_to(ssd1306_bounds_t* target, const ssd1306_point_t origin);
+ssd1306_bounds_t* ssd1306_bounds_move_by(ssd1306_bounds_t* target, const ssd1306_point_t offset);
 uint16_t ssd1306_bounds_width(const ssd1306_bounds_t* bounds);
 uint16_t ssd1306_bounds_height(const ssd1306_bounds_t* bounds);
 ssd1306_point_t ssd1306_bounds_center(const ssd1306_bounds_t* bounds);

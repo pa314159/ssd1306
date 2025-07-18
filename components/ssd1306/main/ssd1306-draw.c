@@ -72,6 +72,34 @@ void ssd1306_draw2(ssd1306_t device, const ssd1306_bitmap_t* bitmap,
 		return;
 	}
 
+	/*
+		device: [0, 16)
+			target: [3, 15)
+				 image: [0, 14)
+				source: [5, 13)
+
+				+
+				|
+		+		|
+		|		|
+		|		|
+		|	+	-
+		|	|	|
+		|	|	|
+		|	|	+
+		|	|	|
+		+	|	|
+		|	|	|
+		|	|	-
+		|	+	|
+		|	|	|
+		|	|
+		|	|
+		|
+		+
+	
+	*/
+
 	ssd1306_update_internal(device, &d_bounds);
 
 	ssd1306_release(device);

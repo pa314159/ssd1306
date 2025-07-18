@@ -3,19 +3,19 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <ssd1306.h>
-#include <ssd1306-misc.h>
-#include <ssd1306-int.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_log.h>
+
+#include "checks.h"
 
 void app_main(void)
 {
 #if !CONFIG_SSD1306_SPLASH
 # error splash has been disabled
 #endif
+
+	test_geom();
+
 	ssd1306_t device = ssd1306_init(NULL);
 	TickType_t ticks = xTaskGetTickCount();
 
